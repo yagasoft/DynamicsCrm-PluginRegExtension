@@ -7,8 +7,8 @@
         <MoreInfo>https://marketplace.visualstudio.com/items?itemName=Yagasoft.CrmPluginRegExt</MoreInfo>
         <License>license.txt</License>
         <ReleaseNotes>README.txt</ReleaseNotes>
-        <Icon>Resources\Generator.ico</Icon>
-        <PreviewImage>Resources\Generator.png</PreviewImage>
+        <Icon>Resources\plugin.png</Icon>
+        <PreviewImage>Resources\plugin.png</PreviewImage>
         <Tags>dynamics,crm,plugin,register</Tags>
     </Metadata>
     <Installation InstalledByMsi="false">
