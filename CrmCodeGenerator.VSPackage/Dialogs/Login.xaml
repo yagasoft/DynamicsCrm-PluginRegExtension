@@ -7,7 +7,7 @@
         xmlns:converter="clr-namespace:CrmPluginRegExt.VSPackage.Dialogs.Converters"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="CrmPluginRegExt.VSPackage.Dialogs.Login"
-        Title="Plugin Registration Extension v1.12.4" SizeToContent="WidthAndHeight" Loaded="Window_Loaded"
+        Title="Plugin Registration Extension v1.13.1" SizeToContent="WidthAndHeight" Loaded="Window_Loaded"
     WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="True" Width="905">
 
     <ui:DialogWindow.Resources>
