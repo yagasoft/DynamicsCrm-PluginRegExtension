@@ -13,5 +13,9 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
   + Filter messages to what the entity supports
   + Prevent registering steps/images for unsupported configurations
 
+### Guide
+
++ Right-click plugin project and choose 'register' or 'update'
+
 ---
 **Copyright &copy; by Ahmed el-Sawalhy ([YagaSoft](http://yagasoft.com))** -- _GPL v3 Licence_
