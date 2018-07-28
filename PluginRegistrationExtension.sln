@@ -1,0 +1,72 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.15
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrmPluginRegExt.VSPackage", "CrmCodeGenerator.VSPackage\CrmPluginRegExt.VSPackage.csproj", "{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrmPluginRegExt.AssemblyInfoLoader", "CrmCodeGenerator.AssemblyInfoLoader\CrmPluginRegExt.AssemblyInfoLoader.csproj", "{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{474A5BC2-BEFF-4F74-A029-7ED81B6633A8}.Release|x86.ActiveCfg = Release|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{53ABB3E7-DA58-4BB7-BB0F-5B4A7439E20B}.Release|x86.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		VisualSVNWorkingCopyRoot = .
+	EndGlobalSection
+	GlobalSection(TeamFoundationVersionControl) = preSolution
+		SccNumberOfProjects = 3
+		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
+		SccTeamFoundationServer = http://10.2.2.209:8080/tfs/tfs08datatcollection
+		SccLocalPath0 = .
+		SccProjectUniqueName1 = CrmCodeGenerator.AssemblyInfoLoader\\CrmPluginRegExt.AssemblyInfoLoader.csproj
+		SccProjectName1 = CrmCodeGenerator.AssemblyInfoLoader
+		SccLocalPath1 = CrmCodeGenerator.AssemblyInfoLoader
+		SccProjectUniqueName2 = CrmCodeGenerator.VSPackage\\CrmPluginRegExt.VSPackage.csproj
+		SccProjectName2 = CrmCodeGenerator.VSPackage
+		SccLocalPath2 = CrmCodeGenerator.VSPackage
+	EndGlobalSection
+	GlobalSection(CrmCodeGeneration) = preSolution
+		UseSSL = True
+		UseIFD = False
+		UseOnline = False
+		UseOffice365 = False
+		ServerName = disco.crm.dynamics.com
+		ServerPort = 443
+		HomeRealm = 
+		Domain = 
+		Organization = DEV-CRM
+		IncludeEntities = account,contact,lead,opportunity,systemuser
+		IncludeNonStandard = False
+	EndGlobalSection
+EndGlobal
