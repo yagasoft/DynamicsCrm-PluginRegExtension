@@ -1,14 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="d57cc223-384b-42cc-b5d0-814a71ce8d61" Version="1.13.2" Language="en-US" Publisher="Ahmed el-Sawalhy" />
-        <DisplayName>CRM Plugin Registration Extension</DisplayName>
-        <Description xml:space="preserve">An extension which facilitates registering and editing CRM plugins configuration from within Visual Studio.</Description>
+        <Identity Id="CrmPluginRegExt" Version="1.13.3" Language="en-US" Publisher="Ahmed el-Sawalhy" />
+        <DisplayName>Dynamics CRM - Plugin Registration Extension</DisplayName>
+        <Description xml:space="preserve">Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.</Description>
+        <MoreInfo>https://marketplace.visualstudio.com/items?itemName=Yagasoft.CrmPluginRegExt</MoreInfo>
         <License>license.txt</License>
         <ReleaseNotes>README.txt</ReleaseNotes>
         <Icon>Resources\Generator.ico</Icon>
         <PreviewImage>Resources\Generator.png</PreviewImage>
-        <Tags>CRM</Tags>
+        <Tags>dynamics,crm,plugin,register</Tags>
     </Metadata>
     <Installation InstalledByMsi="false">
         <InstallationTarget Version="[12.0,)" Id="Microsoft.VisualStudio.Pro" />

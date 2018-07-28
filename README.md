@@ -1,5 +1,5 @@
 # DynamicsCrm-PluginRegExtension
-### Version: 1.13.2
+### Version: 1.13.3
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
