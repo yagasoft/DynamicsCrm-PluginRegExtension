@@ -7,8 +7,8 @@
         xmlns:converter="clr-namespace:CrmPluginRegExt.VSPackage.Dialogs.Converters"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="CrmPluginRegExt.VSPackage.Dialogs.Login"
-        Title="Plugin Registration Extension v1.13.1" SizeToContent="WidthAndHeight" Loaded="Window_Loaded"
-    WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="True" Width="905">
+        Title="Plugin Registration Extension v1.13.2" SizeToContent="WidthAndHeight" Loaded="Window_Loaded"
+    WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="True" Width="905" Height="452.891">
 
     <ui:DialogWindow.Resources>
         <Style TargetType="{x:Type Grid}" >
@@ -83,7 +83,7 @@
     </ui:DialogWindow.InputBindings>
 
     <xctk:BusyIndicator x:Name="BusyIndicator">
-        <Grid Margin="0">
+        <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
@@ -91,7 +91,7 @@
                 <ColumnDefinition Width="330" />
                 <ColumnDefinition Width="437*" />
             </Grid.ColumnDefinitions>
-            <StackPanel x:Name="Inputs" Grid.Column="0" Margin="5,5,0,5" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Left" Width="320">
+            <StackPanel x:Name="Inputs" Grid.Column="0" Margin="5,5,0,10" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Left" Width="320">
                 <Label Content="CRM Connection"/>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -163,48 +163,48 @@
                     <PasswordBox x:Name="txtPassword" IsEnabled="{Binding NeedCredentials}"/>
                     <Label Content="Domain" />
                     <TextBox Text="{Binding Domain, Mode=TwoWay}" x:Name="Domain" IsEnabled="{Binding NeedCredentials}"  />
-                </StackPanel>
-                <Grid Margin="0,10,0,10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition/>
-                        <ColumnDefinition Width="Auto" MinWidth="100"/>
-                        <ColumnDefinition Width="Auto" MinWidth="25"/>
-                    </Grid.ColumnDefinitions>
-                    <CheckBox x:Name="CheckBoxSandbox" Content="Sandbox" IsChecked="{Binding IsSandbox, Mode=TwoWay}" IsEnabled="{Binding IsSandboxEnabled, Mode=OneWay}"/>
-                </Grid>
-                <Grid Height="48" Margin="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="53"/>
-                        <ColumnDefinition Width="53"/>
-                        <ColumnDefinition Width="53"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <Label Grid.Row="1" Grid.Column="0" Content="By: Ahmed el-Sawalhy" BorderThickness="0" HorizontalAlignment="Left" />
-                    <Button Grid.Row="1" Grid.Column="1" x:Name="ButtonCancel" Content="Close" BorderThickness="1"
+            </StackPanel>
+            <Grid Margin="0,10,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto" MinWidth="100"/>
+                    <ColumnDefinition Width="Auto" MinWidth="25"/>
+                </Grid.ColumnDefinitions>
+                <CheckBox x:Name="CheckBoxSandbox" Content="Sandbox" IsChecked="{Binding IsSandbox, Mode=TwoWay}" IsEnabled="{Binding IsSandboxEnabled, Mode=OneWay}"/>
+            </Grid>
+            <Grid Height="48" Margin="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="53"/>
+                    <ColumnDefinition Width="53"/>
+                    <ColumnDefinition Width="53"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Label Grid.Row="1" Grid.Column="0" Content="By: Ahmed el-Sawalhy" BorderThickness="0" HorizontalAlignment="Left" />
+                <Button Grid.Row="1" Grid.Column="1" x:Name="ButtonCancel" Content="Close" BorderThickness="1"
                             Margin="1,0,1,0"
                              Click="ButtonCancel_Click" />
-                    <Button Grid.Row="1" Grid.Column="2" x:Name="ButtonDelete" Content="Delete" BorderThickness="1"
+                <Button Grid.Row="1" Grid.Column="2" x:Name="ButtonDelete" Content="Delete" BorderThickness="1"
                             Margin="1,0,1,0" Foreground="Red"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonDelete_Click" />
-                    <Button Grid.Row="1" Grid.Column="3" x:Name="GenerateCodeButton" Content="Register"
+                <Button Grid.Row="1" Grid.Column="3" x:Name="GenerateCodeButton" Content="Register"
                             Foreground="Green" Margin="1,0,0,0"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="Logon_Click" />
-                    <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Label Margin="0" Content="Assembly Registered: " Padding="1,0,0,0"/>
-                        <TextBlock x:Name="TextBlockIsRegistered" TextWrapping="NoWrap" FontWeight="Bold" Text="{Binding IsRegisteredString, Mode=OneWay}"/>
-                    </StackPanel>
-                    <CheckBox x:Name="CheckBoxClearCache" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Label Margin="0" Content="Assembly Registered: " Padding="1,0,0,0"/>
+                    <TextBlock x:Name="TextBlockIsRegistered" TextWrapping="NoWrap" FontWeight="Bold" Text="{Binding IsRegisteredString, Mode=OneWay}"/>
+                </StackPanel>
+                <CheckBox x:Name="CheckBoxClearCache" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
                               VerticalAlignment="Center" HorizontalAlignment="Right">Clear Cache</CheckBox>
-                    <Button Grid.Row="0" Grid.Column="3" x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
+                <Button Grid.Row="0" Grid.Column="3" x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
                             Margin="1,0,0,1"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonRefresh_Click" />
-                </Grid>
+            </Grid>
             </StackPanel>
-            <Grid Grid.Column="1" HorizontalAlignment="Left" Height="486" Margin="10,10,5,5" VerticalAlignment="Top" Width="525">
+            <Grid Grid.Column="1" HorizontalAlignment="Left" Height="405" Margin="10,10,0,0" VerticalAlignment="Top" Width="525">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="20" />
                     <RowDefinition Height="*" MinHeight="50" MaxHeight="100" />
