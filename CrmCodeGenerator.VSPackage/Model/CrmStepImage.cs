@@ -146,7 +146,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 				// if the string is empty, then all attributes are selected!
 				if (string.IsNullOrEmpty(value))
 				{
-					AttributeList = new ObservableCollection<string>(AttributesSelected);
+					AttributesSelected = new ObservableCollection<string>(AttributeList);
 				}
 				else
 				{

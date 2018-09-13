@@ -983,7 +983,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void ButtonEditImage_Click(object sender, RoutedEventArgs e)
 		{
 			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
-			var image = (CrmStepImage) ListStepImages.SelectedItem;
+			var image = (CrmStepImage) ListStepImages.SelectedItem ?? new CrmStepImage();
 
 			new Thread(() =>
 			           {

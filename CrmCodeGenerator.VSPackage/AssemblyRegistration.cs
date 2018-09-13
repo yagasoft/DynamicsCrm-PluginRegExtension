@@ -735,28 +735,21 @@ namespace CrmPluginRegExt.VSPackage
 		{
 			UpdateStatus($"Updating image '{image.Name}' in step ... ", 1);
 
-			//var updatedImage = Context.SdkMessageProcessingStepImageSet.FirstOrDefault(entity => entity.SdkMessageProcessingStepImageId == image.Id)
-			//					  ?? new SdkMessageProcessingStepImage();
+			var updatedImage =
+				new SdkMessageProcessingStepImage
+				{
+					Id = image.Id,
+					Name = image.Name,
+					EntityAlias = image.EntityAlias,
+					Attributes1 = image.AttributesSelectedString,
+					ImageType = image.ImageType.ToOptionSetValue(),
+					MessagePropertyName = image.Step.MessagePropertyName,
+					SdkMessageProcessingStepId = new EntityReference(
+						SdkMessageProcessingStep.EntityLogicalName, image.Step.Id)
+				};
 
-			//if (updatedImage.Id == Guid.Empty)
-			//{
-			//	updatedImage.Id = image.Id;
-			//}
-			var updatedImage = new SdkMessageProcessingStepImage
-							   {
-								   Id = image.Id,
-								   Name = image.Name,
-								   EntityAlias = image.EntityAlias,
-								   Attributes1 = image.AttributesSelectedString,
-								   ImageType = image.ImageType.ToOptionSetValue()
-							   };
-
-			//Context.ConfirmAttached(updatedImage);
-			//Context.UpdateObject(updatedImage);
 			UpdateStatus("Updating image ... ");
 			Service.Update(updatedImage);
-			//UpdateStatus("Saving updated image to CRM ... ");
-			//Context.SaveChanges();
 
 			UpdateStatus($"Finished updating image '{image.Name}'.", -1);
 		}

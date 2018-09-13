@@ -159,7 +159,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			MessageList = (from message in context.SdkMessageSet
 			               join filter in context.SdkMessageFilterSet
 				               on message.SdkMessageId equals filter.SdkMessageId.Id
-						   where filter.IsCustomProcessingStepAllowed == true
+						  // where filter.IsCustomProcessingStepAllowed == true
 			               select new ComboMessage
 			                      {
 				                      MessageId = message.SdkMessageId.GetValueOrDefault(),
