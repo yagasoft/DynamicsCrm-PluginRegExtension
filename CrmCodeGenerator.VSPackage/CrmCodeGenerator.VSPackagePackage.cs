@@ -31,19 +31,20 @@ namespace CrmPluginRegExt.VSPackage
 	///     register itself and its components with the shell.
 	/// </summary>
 	// This attribute tells the PkgDef creation utility (CreatePkgDef.exe) that this class is
-	// a package.
-	[PackageRegistration(UseManagedResourcesOnly = true)]
-	// This attribute is used to register the information needed to show this package
-	// in the Help/About dialog of Visual Studio.
-	[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
-	//this causes the class to load when VS starts [ProvideAutoLoad("ADFC4E64-0397-11D1-9F4E-00A0C911004F")]
-	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasSingleProject_string)]
-	[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasMultipleProjects_string)]
-	// This attribute is needed to let the shell know that this package exposes some menus.
-	[ProvideMenuResource("Menus.ctmenu", 1)]
-	[Guid(GuidList.guidPluginRegExt_VSPackagePkgString)]
-	public sealed class CrmPluginRegExt_VSPackagePackage : Package,
-		IVsSolutionEvents3
+		// a package.
+		[PackageRegistration(UseManagedResourcesOnly = true)]
+		// This attribute is used to register the information needed to show this package
+		// in the Help/About dialog of Visual Studio.
+		[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
+		//this causes the class to load when VS starts [ProvideAutoLoad("ADFC4E64-0397-11D1-9F4E-00A0C911004F")]
+		[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasSingleProject_string)]
+		[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasMultipleProjects_string)]
+		// This attribute is needed to let the shell know that this package exposes some menus.
+		[ProvideMenuResource("Menus.ctmenu", 1)]
+		[Guid(GuidList.guidPluginRegExt_VSPackagePkgString)]
+	public sealed class CrmPluginRegExt_VSPackagePackage
+		: Package,
+			IVsSolutionEvents3
 	{
 		/// <summary>
 		///     Default constructor of the package.
@@ -56,7 +57,6 @@ namespace CrmPluginRegExt.VSPackage
 		{
 			Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", ToString()));
 		}
-
 
 		/////////////////////////////////////////////////////////////////////////////
 		// Overridden Package Implementation
@@ -83,26 +83,26 @@ namespace CrmPluginRegExt.VSPackage
 			if (null != mcs)
 			{
 				var registerCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
-					(int) PkgCmdIDList.cmdidRegisterModifyPlugin);
+					(int)PkgCmdIDList.cmdidRegisterModifyPlugin);
 				var registerItem = new MenuCommand(RegisterModifyPluginCallback, registerCmd);
 				mcs.AddCommand(registerItem);
 
-				var updateCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet, (int) PkgCmdIDList.cmdidUpdatePlugin);
+				var updateCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet, (int)PkgCmdIDList.cmdidUpdatePlugin);
 				var updateItem = new MenuCommand(UpdatePluginCallback, updateCmd);
 				mcs.AddCommand(updateItem);
 
 				var multiRegisterCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
-					(int) PkgCmdIDList.cmdidMultiRegisterModifyPlugin);
+					(int)PkgCmdIDList.cmdidMultiRegisterModifyPlugin);
 				var multiRegisterItem = new MenuCommand(RegisterModifyPluginCallback, multiRegisterCmd);
 				mcs.AddCommand(multiRegisterItem);
 
 				var multiUpdateCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
-					(int) PkgCmdIDList.cmdidMultiUpdatePlugin);
+					(int)PkgCmdIDList.cmdidMultiUpdatePlugin);
 				var multiUpdateItem = new MenuCommand(UpdatePluginCallback, multiUpdateCmd);
 				mcs.AddCommand(multiUpdateItem);
 
 				var copySettingsCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
-					(int) PkgCmdIDList.cmdidCopyPluginSettings);
+					(int)PkgCmdIDList.cmdidCopyPluginSettings);
 				var copySettingsItem = new MenuCommand(CopySettingsCallback, copySettingsCmd);
 				mcs.AddCommand(copySettingsItem);
 
@@ -262,51 +262,49 @@ namespace CrmPluginRegExt.VSPackage
 			}
 			else
 			{
-				using (var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString()))
-				{
-					var context = new XrmServiceContext(service);
-					var registration = new AssemblyRegistration(context, service);
+				var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString());
+				var context = new XrmServiceContext(service);
+				var registration = new AssemblyRegistration(context, service);
 
-					registration.PropertyChanged +=
-						(o, args) =>
+				registration.PropertyChanged +=
+					(o, args) =>
+					{
+						try
 						{
-							try
+							switch (args.PropertyName)
 							{
-								switch (args.PropertyName)
-								{
-									case "LogMessage":
-										lock (registration.LoggingLock)
-										{
-											Status.Update(registration.LogMessage);
-										}
-										break;
-								}
+								case "LogMessage":
+									lock (registration.LoggingLock)
+									{
+										Status.Update(registration.LogMessage);
+									}
+									break;
 							}
-							catch
-							{
-								// ignored
-							}
-						};
+						}
+						catch
+						{
+							// ignored
+						}
+					};
 
-					// if the assembly is registered, get ID and update
-					if (CrmAssemblyHelper.IsAssemblyRegistered(context))
-					{
-						var id = settings.Id == Guid.Empty
-							? CrmAssemblyHelper.GetAssemblyId(context)
-							: settings.Id;
-						registration.UpdateAssembly(id, null);
-						Status.Update($"Ran update on: {settings.ServerName} - {settings.CrmOrg} - {settings.Username}.");
-						Status.Update($"For project: {DteHelper.GetProjectName(project)}.");
-					}
-					else
-					{
-						// else, reset and open dialogue
-						// reset ID
-						settings.Id = Guid.Empty;
-						Configuration.SaveConfigs(settingsArray);
+				// if the assembly is registered, get ID and update
+				if (CrmAssemblyHelper.IsAssemblyRegistered(context))
+				{
+					var id = settings.Id == Guid.Empty
+						? CrmAssemblyHelper.GetAssemblyId(context)
+						: settings.Id;
+					registration.UpdateAssembly(id, null);
+					Status.Update($"Ran update on: {settings.ServerName} - {settings.CrmOrg} - {settings.Username}.");
+					Status.Update($"For project: {DteHelper.GetProjectName(project)}.");
+				}
+				else
+				{
+					// else, reset and open dialogue
+					// reset ID
+					settings.Id = Guid.Empty;
+					Configuration.SaveConfigs(settingsArray);
 
-						RegisterModifyPlugin(project);
-					}
+					RegisterModifyPlugin(project);
 				}
 			}
 		}
@@ -473,27 +471,25 @@ namespace CrmPluginRegExt.VSPackage
 			}
 			else
 			{
-				using (var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString()))
+				var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString());
+				var context = new XrmServiceContext(service);
+				var registration = new AssemblyRegistration(context, service);
+
+				// if the assembly is registered, get ID and delete
+				if (CrmAssemblyHelper.IsAssemblyRegistered(context))
 				{
-					var context = new XrmServiceContext(service);
-					var registration = new AssemblyRegistration(context, service);
+					var id = settings.Id == Guid.Empty
+						? CrmAssemblyHelper.GetAssemblyId(context)
+						: settings.Id;
+					registration.DeleteAssembly(id);
+				}
+				else
+				{
+					Status.Update("Assembly already deleted!");
 
-					// if the assembly is registered, get ID and delete
-					if (CrmAssemblyHelper.IsAssemblyRegistered(context))
-					{
-						var id = settings.Id == Guid.Empty
-							? CrmAssemblyHelper.GetAssemblyId(context)
-							: settings.Id;
-						registration.DeleteAssembly(id);
-					}
-					else
-					{
-						Status.Update("Assembly already deleted!");
-
-						// else, reset ID
-						settings.Id = Guid.Empty;
-						Configuration.SaveConfigs(settingsArray);
-					}
+					// else, reset ID
+					settings.Id = Guid.Empty;
+					Configuration.SaveConfigs(settingsArray);
 				}
 			}
 		}

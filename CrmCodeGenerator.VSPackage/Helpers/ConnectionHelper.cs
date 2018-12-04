@@ -24,8 +24,6 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	public class ConnectionHelper
     {
-		private static readonly IDictionary<string, IEnhancedServicePool<EnhancedOrgService>> poolCache
-			= new Dictionary<string, IEnhancedServicePool<EnhancedOrgService>>();
 		private static readonly IDictionary<string, EnhancedServiceFactory<EnhancedOrgService>> factoryCache
 			= new Dictionary<string, EnhancedServiceFactory<EnhancedOrgService>>();
 
@@ -33,10 +31,9 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		{
 			Status.Update("Creating connection to CRM ... ", false);
 
-			poolCache.TryGetValue(connectionString, out var pool);
 			factoryCache.TryGetValue(connectionString, out var factory);
 
-			if (pool == null || factory == null)
+			if (factory == null)
 			{
 				var template = EnhancedServiceBuilder.NewBuilder
 					.Initialise(connectionString)
@@ -44,15 +41,14 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					.Finalise()
 					.GetBuild();
 				factoryCache[connectionString] = factory = new EnhancedServiceFactory<EnhancedOrgService>(template);
-				poolCache[connectionString] = pool = new EnhancedServicePool<EnhancedOrgService>(factory);
 			}
 
 			if (noCache)
 			{
 				factory.ClearCache();
 			}
-
-			var service = pool.GetService();
+			
+			var service = factory.CreateEnhancedService();
 
 			Status.Update("done!");
 
