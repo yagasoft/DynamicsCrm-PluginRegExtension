@@ -1,79 +1,38 @@
 ﻿<ui:DialogWindow
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vs_shell="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.12.0"
-        xmlns:ui="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.12.0"                 
-        xmlns:control="clr-namespace:CrmCodeGenerator.Controls;assembly=CrmCodeGenerator.Controls"
-        xmlns:converter="clr-namespace:CrmPluginRegExt.VSPackage.Dialogs.Converters"
-        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" x:Class="CrmPluginRegExt.VSPackage.Dialogs.Login"
-        Title="Plugin Registration Extension v1.13.6" SizeToContent="WidthAndHeight" Loaded="Window_Loaded"
-    WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="True" Width="905" Height="452.891">
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vs_shell="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.12.0"
+    xmlns:ui="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.12.0"
+    xmlns:control="clr-namespace:CrmCodeGenerator.Controls;assembly=CrmCodeGenerator.Controls"
+    xmlns:converter="clr-namespace:CrmPluginRegExt.VSPackage.Dialogs.Converters"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d"
+    x:Class="CrmPluginRegExt.VSPackage.Dialogs.Login"
+    Loaded="Window_Loaded"
+    WindowStartupLocation="CenterScreen" ShowInTaskbar="True" Width="1000" Height="500">
 
     <ui:DialogWindow.Resources>
-        <Style TargetType="{x:Type Grid}" >
-            <!--<Setter Property="Background"  Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogBrushKey}}"/>-->
-            <!--<Setter Property="Background"  Value="Blue"></Setter>-->
+        <Style TargetType="{x:Type Grid}">
         </Style>
         <Style TargetType="{x:Type Label}">
-            <!--<Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogTextBrushKey}}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />-->
             <Setter Property="Margin" Value="-4,0,0,-4" />
         </Style>
         <Style TargetType="{x:Type TextBox}">
-            <!--<Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-            <Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowBackgroundBrushKey}}"/>-->
-            <!--<Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />-->
             <Setter Property="Margin" Value="0,0,0,0" />
             <Setter Property="Height" Value="20" />
         </Style>
         <Style TargetType="{x:Type PasswordBox}">
-            <!--<Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-            <Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowBackgroundBrushKey}}"/>-->
-            <!--<Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />-->
             <Setter Property="Margin" Value="0,0,0,0" />
             <Setter Property="Height" Value="20" />
         </Style>
         <Style TargetType="{x:Type CheckBox}">
-            <!--<Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-            <Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowBackgroundBrushKey}}"/>-->
-            <!--<Setter Property="Background"  Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogBrushKey}}"/>
-            <Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogTextBrushKey}}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />-->
             <Setter Property="Margin" Value="0,0,15,0" />
-
         </Style>
         <Style TargetType="{x:Type ComboBox}">
-            <!--<Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowTextBrushKey}}"/>
-            <Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowBackgroundBrushKey}}"/>-->
-            <!--<Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />-->
             <Setter Property="Margin" Value="0,0,0,0" />
         </Style>
-        <!--<Style TargetType="TextBlock">
-            <Setter Property="Background"  Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogBrushKey}}"/>
-            <Setter Property="Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.DialogTextBrushKey}}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />
-        </Style>-->
-        <!--<Style TargetType="Button">
-            <Setter Property="FontFamily" Value="{DynamicResource VsFont.EnvironmentFontFamily}" />
-            <Setter Property="FontSize" Value="{DynamicResource VsFont.EnvironmentFontSize}" />
-            <Setter Property="Padding" Value="5" />-->
-        <!--<Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.ToolWindowButtonInactiveBrushKey}}" />-->
-        <!--<Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="true">
-                    <Setter Property="BorderBrush" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.CommandBarBorderBrushKey}}" />
-                    <Setter Property="Background" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.CommandBarMouseOverBackgroundGradientBrushKey}}" />-->
-        <!--<Setter Property="TextElement.Foreground" Value="{DynamicResource {x:Static vs_shell:EnvironmentColors.CommandBarTextHoverBrushKey}}"/>-->
-        <!--</Trigger>
-            </Style.Triggers>
-        </Style>-->
-        <converter:BoolToVisibilityConverter x:Key="BoolToHiddenConverter" TrueValue="Visible" FalseValue="Collapsed"/>
+        <converter:BoolToVisibilityConverter x:Key="BoolToHiddenConverter" TrueValue="Visible" FalseValue="Collapsed" />
     </ui:DialogWindow.Resources>
     <ui:DialogWindow.CommandBindings>
         <CommandBinding Command="Close" Executed="Cancel_Click" />
@@ -88,12 +47,23 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="330" />
+                <ColumnDefinition Width="370" />
                 <ColumnDefinition Width="437*" />
             </Grid.ColumnDefinitions>
-            <StackPanel x:Name="Inputs" Grid.Column="0" Margin="5,5,0,10" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Left" Width="320">
-                <Label Content="CRM Connection"/>
-                <Grid>
+            <Grid x:Name="Inputs" Grid.Column="0" Margin="10,10,0,10"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Label Content="CRM Connection" />
+                <Grid Grid.Row="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*" />
                         <RowDefinition Height="*" />
@@ -107,13 +77,17 @@
                     <ComboBox x:Name="ComboBoxSettings" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="4"
                               ItemsSource="{Binding SettingsList, Mode=OneWay}"
                               SelectedIndex="{Binding SelectedSettingsIndex, Mode=TwoWay}"
-                              SelectionChanged="ComboBoxSettings_SelectionChanged" ></ComboBox>
-                    <Button x:Name="ButtonNewSettings" Grid.Row="1" Grid.Column="0" Margin="2,2,0,0" Content="New" Click="ButtonNewSettings_Click"></Button>
-                    <Button x:Name="ButtonDuplicateSettings" Grid.Row="1" Grid.Column="1" Margin="2,2,0,0" Content="Duplicate" Click="ButtonDuplicateSettings_Click"></Button>
-                    <Button x:Name="ButtonDeleteSettings" Grid.Row="1" Grid.Column="2" Margin="2,2,0,0" Content="Delete" Click="ButtonDeleteSettings_Click"></Button>
-                    <Button x:Name="ButtonSaveSettings" Grid.Row="1" Grid.Column="3" Margin="2,2,0,0" Content="Save" Click="ButtonSaveSettings_Click"></Button>
+                              SelectionChanged="ComboBoxSettings_SelectionChanged" />
+                    <Button x:Name="ButtonNewSettings" Grid.Row="1" Grid.Column="0" Margin="2,2,0,0" Content="New"
+                            Click="ButtonNewSettings_Click" />
+                    <Button x:Name="ButtonDuplicateSettings" Grid.Row="1" Grid.Column="1" Margin="2,2,0,0"
+                            Content="Duplicate" Click="ButtonDuplicateSettings_Click" />
+                    <Button x:Name="ButtonDeleteSettings" Grid.Row="1" Grid.Column="2" Margin="2,2,0,0"
+                            Content="Delete" Click="ButtonDeleteSettings_Click" />
+                    <Button x:Name="ButtonSaveSettings" Grid.Row="1" Grid.Column="3" Margin="2,2,0,0" Content="Save"
+                            Click="ButtonSaveSettings_Click" />
                 </Grid>
-                <Grid>
+                <Grid Grid.Row="2" VerticalAlignment="Stretch">
                     <Grid.Resources>
                         <Style TargetType="{x:Type TextBox}">
                             <Setter Property="Margin" Value="0,3,0,2" />
@@ -127,142 +101,180 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <!---->
-				    <Label Grid.Column="0"  Grid.Row="0" Grid.RowSpan="2" VerticalAlignment="Top" Content="Profile Name" />
-				    <TextBox  Grid.Column="1"  Grid.Row="0"  Text="{Binding ProfileName, Mode=TwoWay}" />
-                    <Label Grid.Column="0"  Grid.Row="1" Content="Auth Type"/>
-					<ComboBox Margin="0,3,0,2" Grid.Column="1"  Grid.Row="1" 
-						IsTextSearchEnabled="True" 
-						Text="{Binding ServerPort, Mode=TwoWay}"          
-						x:Name="OnlineServer">
-                        <ComboBoxItem IsSelected="True" Content="AD"/>
-                        <ComboBoxItem Content="Office365" />
-                        <ComboBoxItem Content="IFD" />
-                        <ComboBoxItem Content="OAuth" />
-                    </ComboBox>
-                    <Label Grid.Column="0"  Grid.Row="2" Grid.RowSpan="2" VerticalAlignment="Top" Content="Organisation URL" />
-                    <TextBox  Grid.Column="1"  Grid.Row="2"  Text="{Binding ServerName, Mode=TwoWay}"/>
-                    <Label Grid.Column="0"  Grid.Row="3" IsEnabled="{Binding NeedHomeRealm}" Content="Home Realm URI" />
-                    <TextBox Grid.Column="1"  Grid.Row="3" IsReadOnly="{Binding NotNeedHomeRealm}" IsEnabled="{Binding NeedHomeRealm}" Text="{Binding HomeRealm, Mode=TwoWay}"  HorizontalAlignment="Stretch"/>
+                    <Label Grid.Column="0" Grid.Row="0" VerticalAlignment="Top" Content="Profile Name" />
+                    <TextBox Grid.Column="1" Grid.Row="0" Text="{Binding ProfileName, Mode=TwoWay}" />
+                    <Label Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Top"
+                           Content="Connection String:" />
+                    <TextBox Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
+                             Height="Auto"
+                             Text="{Binding ConnectionString, Mode=TwoWay}"
+                             xml:space="preserve"
+                             FontFamily="Courier New"
+                             VerticalAlignment="Stretch"
+                             TextWrapping="NoWrap"
+                             AcceptsReturn="True"
+                             HorizontalScrollBarVisibility="Auto"
+                             VerticalScrollBarVisibility="Auto" />
                 </Grid>
 
-                <StackPanel Margin="0,10,0,10">
-                    <CheckBox IsChecked="{Binding UseWindowsAuth, Mode=TwoWay}" x:Name="UseWindowAuth" Content="Windows Authentication"/>
-
-                    <Label Content="Username" />
-                    <TextBox Text="{Binding Username, Mode=TwoWay}" x:Name="Username" IsEnabled="{Binding NeedCredentials}" />
-                    <Label Content="Password"  />
-                    <!--<TextBox Text="{Binding Path=Password, Mode=TwoWay}" Name="Password"   />-->
-                    <PasswordBox x:Name="txtPassword" IsEnabled="{Binding NeedCredentials}"/>
-                    <Label Content="Domain" />
-                    <TextBox Text="{Binding Domain, Mode=TwoWay}" x:Name="Domain" IsEnabled="{Binding NeedCredentials}"  />
-            </StackPanel>
-            <Grid Margin="0,10,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition/>
-                    <ColumnDefinition Width="Auto" MinWidth="100"/>
-                    <ColumnDefinition Width="Auto" MinWidth="25"/>
-                </Grid.ColumnDefinitions>
-                <CheckBox x:Name="CheckBoxSandbox" Content="Sandbox" IsChecked="{Binding IsSandbox, Mode=TwoWay}" IsEnabled="{Binding IsSandboxEnabled, Mode=OneWay}"/>
-            </Grid>
-            <Grid Height="48" Margin="0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="53"/>
-                    <ColumnDefinition Width="53"/>
-                    <ColumnDefinition Width="53"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Label Grid.Row="1" Grid.Column="0" Content="By: Ahmed el-Sawalhy" BorderThickness="0" HorizontalAlignment="Left" />
-                <Button Grid.Row="1" Grid.Column="1" x:Name="ButtonCancel" Content="Close" BorderThickness="1"
+                <Grid Grid.Row="3" Margin="0,10,0,10">
+                    <CheckBox x:Name="CheckBoxSandbox" Content="Sandbox" IsChecked="{Binding IsSandbox, Mode=TwoWay}" />
+                </Grid>
+                <Grid Grid.Row="4" Height="48" Margin="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="53" />
+                        <ColumnDefinition Width="53" />
+                        <ColumnDefinition Width="53" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Label Grid.Row="1" Grid.Column="0" Content="By: Ahmed el-Sawalhy" BorderThickness="0"
+                           HorizontalAlignment="Left" />
+                    <Button Grid.Row="1" Grid.Column="1" x:Name="ButtonCancel" Content="Close" BorderThickness="1"
                             Margin="1,0,1,0"
-                             Click="ButtonCancel_Click" />
-                <Button Grid.Row="1" Grid.Column="2" x:Name="ButtonDelete" Content="Delete" BorderThickness="1"
+                            Click="ButtonCancel_Click" />
+                    <Button Grid.Row="1" Grid.Column="2" x:Name="ButtonDelete" Content="Delete" BorderThickness="1"
                             Margin="1,0,1,0" Foreground="Red"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonDelete_Click" />
-                <Button Grid.Row="1" Grid.Column="3" x:Name="GenerateCodeButton" Content="Register"
+                    <Button Grid.Row="1" Grid.Column="3" x:Name="GenerateCodeButton" Content="Register"
                             Foreground="Green" Margin="1,0,0,0"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="Logon_Click" />
-                <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Label Margin="0" Content="Assembly Registered: " Padding="1,0,0,0"/>
-                    <TextBlock x:Name="TextBlockIsRegistered" TextWrapping="NoWrap" FontWeight="Bold" Text="{Binding IsRegisteredString, Mode=OneWay}"/>
-                </StackPanel>
-                <CheckBox x:Name="CheckBoxClearCache" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                              VerticalAlignment="Center" HorizontalAlignment="Right">Clear Cache</CheckBox>
-                <Button Grid.Row="0" Grid.Column="3" x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
+                    <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Label Margin="0" Content="Assembly Registered: " Padding="1,0,0,0" />
+                        <TextBlock x:Name="TextBlockIsRegistered" TextWrapping="NoWrap" FontWeight="Bold"
+                                   Text="{Binding IsRegisteredString, Mode=OneWay}" />
+                    </StackPanel>
+                    <CheckBox x:Name="CheckBoxClearCache" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
+                              VerticalAlignment="Center" HorizontalAlignment="Right">
+                        Clear Cache
+                    </CheckBox>
+                    <Button Grid.Row="0" Grid.Column="3" x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
                             Margin="1,0,0,1"
                             CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonRefresh_Click" />
+                </Grid>
             </Grid>
-            </StackPanel>
-            <Grid Grid.Column="1" HorizontalAlignment="Left" Height="405" Margin="10,10,0,0" VerticalAlignment="Top" Width="525">
+            <Grid Grid.Column="1" HorizontalAlignment="Stretch" Margin="10" VerticalAlignment="Stretch">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="20" />
-                    <RowDefinition Height="*" MinHeight="50" MaxHeight="100" />
-                    <RowDefinition Height="20" />
+                    <RowDefinition Height="27" />
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="20" />
-                    <RowDefinition Height="*" MinHeight="50" MaxHeight="100" />
+                    <RowDefinition Height="23" />
+                    <RowDefinition Height="27" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="23" />
+                    <RowDefinition Height="40" />
                 </Grid.RowDefinitions>
                 <Label Grid.Row="0" Content="Plugin Types" Margin="0" Padding="0" FontWeight="Bold" />
-                <ListView Grid.Row="1" x:Name="ListPluginTypes" SelectionChanged="ListPluginTypes_SelectionChanged" SelectionMode="Single"
+                <Grid Grid.Row="1" Margin="5,2,2,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition MaxWidth="50"/>
+                        <ColumnDefinition MaxWidth="50"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Padding="0,3,0,0" Content="Filter" />
+                    <TextBox x:Name="TextBoxFilterType" Grid.Column="1"
+                             Margin="5,0,0,0"
+                             KeyDown="TextBoxFilterType_OnKeyDown"
+                             Text="{Binding FilterType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button x:Name="ButtonFilterType" Grid.Column="2" Margin="2,2,0,1" Content="Filter" Click="ButtonFilterType_Click" />
+                    <Button x:Name="ButtonFilterClearType" Grid.Column="3" Margin="2,2,0,1" Content="Clear" Click="ButtonFilterClearType_Click" />
+                </Grid>
+                <ListView Grid.Row="2" x:Name="ListPluginTypes" SelectionChanged="ListPluginTypes_SelectionChanged"
+                          SelectionMode="Single"
                           PreviewMouseLeftButtonDown="ListPluginTypes_OnPreviewMouseLeftButtonDown">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock><Run Text="{Binding IsWorkflowString, Mode=OneWay}" Foreground="Blue" /><Run Text="{Binding Name, Mode=OneWay}" /></TextBlock>
+                            <TextBlock>
+                                <Run Text="{Binding IsWorkflowString, Mode=OneWay}" Foreground="Blue" />
+                                <Run Text="{Binding Name, Mode=OneWay}" />
+                            </TextBlock>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <Grid Grid.Row="2" Margin="0,2,0,0">
+                <Grid Grid.Row="3" Margin="0,2,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
                     </Grid.ColumnDefinitions>
                     <Label Content="Type Steps" Margin="0" Padding="0" FontWeight="Bold" />
-                    <Button x:Name="ButtonToggleStep" Grid.Column="1" Content="Toggle" Margin="0,0,15,0" Click="ButtonToggleStep_Click" IsEnabled="{Binding IsTypeStepSelected}" Width="60"/>
-                    <Button x:Name="ButtonAddStep"  Grid.Column="2" Content="Add" Margin="0,0,2,0" IsEnabled="{Binding IsPluginTypeStepsEnabled}" Click="ButtonAddStep_Click"/>
-                    <Button x:Name="ButtonEditStep" Grid.Column="3" Content="Edit" Margin="0,0,2,0" IsEnabled="{Binding IsTypeStepSelected}" Click="ButtonEditStep_Click"/>
-                    <Button x:Name="ButtonRemoveStep" Grid.Column="4" Content="Remove" Margin="0,0,2,0" Click="ButtonRemoveStep_Click" IsEnabled="{Binding IsTypeStepSelected}"/>
+                    <Button x:Name="ButtonToggleStep" Grid.Column="1" Content="Toggle" Margin="0,0,15,0"
+                            Click="ButtonToggleStep_Click" IsEnabled="{Binding IsTypeStepSelected}" Width="60" />
+                    <Button x:Name="ButtonAddStep" Grid.Column="2" Content="Add" Margin="0,0,2,0"
+                            IsEnabled="{Binding IsPluginTypeStepsEnabled}" Click="ButtonAddStep_Click" />
+                    <Button x:Name="ButtonEditStep" Grid.Column="3" Content="Edit" Margin="0,0,2,0"
+                            IsEnabled="{Binding IsTypeStepSelected}" Click="ButtonEditStep_Click" />
+                    <Button x:Name="ButtonRemoveStep" Grid.Column="4" Content="Remove" Margin="0,0,2,0"
+                            Click="ButtonRemoveStep_Click" IsEnabled="{Binding IsTypeStepSelected}" />
                 </Grid>
-                <ListView Grid.Row="3" x:Name="ListTypeSteps"
-                          SelectionChanged="ListTypeSteps_SelectionChanged" MouseDoubleClick="ListTypeSteps_MouseDoubleClick"
+                <Grid Grid.Row="4" Margin="5,2,2,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition MaxWidth="50"/>
+                        <ColumnDefinition MaxWidth="50"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Column="0" Padding="0,3,0,0" Content="Filter" />
+                    <TextBox x:Name="TextBoxFilterStep" Grid.Column="1"
+                             Margin="5,0,0,0"
+                             IsEnabled="{Binding IsPluginTypeStepsEnabled}"
+                             KeyDown="TextBoxFilterStep_OnKeyDown"
+                             Text="{Binding FilterStep, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button x:Name="ButtonFilterStep" Grid.Column="2" Margin="2,2,0,1"
+                            IsEnabled="{Binding IsPluginTypeStepsEnabled}" Content="Filter" Click="ButtonFilterStep_Click" />
+                    <Button x:Name="ButtonFilterClearStep" Grid.Column="3" Margin="2,2,0,1"
+                            IsEnabled="{Binding IsPluginTypeStepsEnabled}" Content="Clear" Click="ButtonFilterClearStep_Click" />
+                </Grid>
+                <ListView Grid.Row="5" x:Name="ListTypeSteps"
+                          SelectionChanged="ListTypeSteps_SelectionChanged"
+                          MouseDoubleClick="ListTypeSteps_MouseDoubleClick"
                           PreviewMouseLeftButtonDown="ListTypeSteps_OnPreviewMouseLeftButtonDown">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock><Run Text="{Binding IsDisabledString, Mode=OneWay}" Foreground="Red" /><Run Text="{Binding DisplayName, Mode=OneWay}" /></TextBlock>
+                            <TextBlock>
+                                <Run Text="{Binding IsDisabledString, Mode=OneWay}" Foreground="Red" />
+                                <Run Text="{Binding DisplayName, Mode=OneWay}" />
+                            </TextBlock>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
-                <Grid Grid.Row="4" Margin="0,2,0,0">
+                <Grid Grid.Row="6" Margin="0,2,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
-                        <ColumnDefinition Width="Auto" MinWidth="50"/>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
+                        <ColumnDefinition Width="Auto" MinWidth="50" />
                     </Grid.ColumnDefinitions>
                     <Label Content="Step Images" Margin="0" Padding="0" FontWeight="Bold" />
-                    <Button x:Name="ButtonAddImage"  Grid.Column="1" Content="Add" Margin="0,0,2,0" IsEnabled="{Binding IsAddImageAllowed}" Click="ButtonAddImage_Click"/>
-                    <Button x:Name="ButtonEditImage" Grid.Column="2" Content="Edit" Margin="0,0,2,0" IsEnabled="{Binding IsStepImageSelected}" Click="ButtonEditImage_Click"/>
-                    <Button x:Name="ButtonRemoveImage" Grid.Column="3" Content="Remove" Margin="0,0,2,0" Click="ButtonRemoveImage_Click" IsEnabled="{Binding IsStepImageSelected}"/>
+                    <Button x:Name="ButtonAddImage" Grid.Column="1" Content="Add" Margin="0,0,2,0"
+                            IsEnabled="{Binding IsAddImageAllowed}" Click="ButtonAddImage_Click" />
+                    <Button x:Name="ButtonEditImage" Grid.Column="2" Content="Edit" Margin="0,0,2,0"
+                            IsEnabled="{Binding IsStepImageSelected}" Click="ButtonEditImage_Click" />
+                    <Button x:Name="ButtonRemoveImage" Grid.Column="3" Content="Remove" Margin="0,0,2,0"
+                            Click="ButtonRemoveImage_Click" IsEnabled="{Binding IsStepImageSelected}" />
                 </Grid>
-                <ListView Grid.Row="5" x:Name="ListStepImages"
-                          SelectionChanged="ListStepImages_SelectionChanged" MouseDoubleClick="ListStepImages_MouseDoubleClick"
+                <ListView Grid.Row="7" x:Name="ListStepImages"
+                          SelectionChanged="ListStepImages_SelectionChanged"
+                          MouseDoubleClick="ListStepImages_MouseDoubleClick"
                           PreviewMouseLeftButtonDown="ListStepImages_OnPreviewMouseLeftButtonDown">
                     <ListView.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock><Run Text="{Binding Name, Mode=OneWay}" /></TextBlock>
+                            <TextBlock>
+                                <Run Text="{Binding Name, Mode=OneWay}" />
+                            </TextBlock>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>

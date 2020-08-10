@@ -4,11 +4,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CrmPluginEntities;
-using CrmPluginRegExt.VSPackage.Model;
-using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Client;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata.Query;
 using Microsoft.Xrm.Sdk.Query;
+using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
 
@@ -39,23 +39,23 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		public static List<ComboUser> UserList = new List<ComboUser>();
 		public static Dictionary<string, List<string>> AttributeList = new Dictionary<string, List<string>>();
 
-		internal static List<string> GetEntityNames(XrmServiceContext context, bool cached = true)
+		internal static List<string> GetEntityNames(string connectionString, bool cached = true)
 		{
 			if (!MessageList.Any() || !cached)
 			{
-				RefreshMessageCache(context);
+				RefreshMessageCache(connectionString);
 			}
 
 			return MessageList.Select(message => message.EntityName).Distinct()
 				.OrderBy(name => name).ToList();
 		}
 
-		internal static List<string> GetMessageNames(string entityName, XrmServiceContext context,
+		internal static List<string> GetMessageNames(string entityName, string connectionString,
 			bool cached = true)
 		{
 			if (!MessageList.Any() || !cached)
 			{
-				RefreshMessageCache(context);
+				RefreshMessageCache(connectionString);
 			}
 
 			return MessageList.Where(message => entityName == "none" || message.EntityName == entityName)
@@ -63,7 +63,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 				.OrderBy(name => name).ToList();
 		}
 
-		internal static List<ComboUser> GetUsers(XrmServiceContext context, bool cached = true)
+		internal static List<ComboUser> GetUsers(string connectionString, bool cached = true)
 		{
 			if (UserList.Any() && cached)
 			{
@@ -81,19 +81,24 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 							   }
 						   };
 
-				UserList.AddRange((from user in context.SystemUserSet
-								   where user.IsDisabled == false
-								   select new ComboUser
-										  {
-											  Id = user.Id,
-											  Name = user.FirstName + " " + user.LastName
-										  }).ToList().OrderBy(user => user.Name));
+				using (var service = GetConnection(connectionString))
+				using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+				{
+					UserList.AddRange(
+						(from user in context.SystemUserSet
+						 where user.IsDisabled == false
+						 select new ComboUser
+								{
+									Id = user.Id,
+									Name = user.FirstName + " " + user.LastName
+								}).ToList().OrderBy(user => user.Name));
+				}
 			}
 
 			return UserList;
 		}
 
-		internal static List<string> GetEntityFieldNames(string entityName, XrmServiceContext context, bool cached = true)
+		internal static List<string> GetEntityFieldNames(string entityName, string connectionString, bool cached = true)
 		{
 			if (entityName == "none")
 			{
@@ -112,9 +117,9 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					new MetadataConditionExpression("LogicalName", MetadataConditionOperator.Equals, entityName));
 
 				var entityProperties = new MetadataPropertiesExpression
-				{
-					AllProperties = false
-				};
+									   {
+										   AllProperties = false
+									   };
 				entityProperties.PropertyNames.AddRange("Attributes");
 
 				var attributesFilter = new MetadataFilterExpression(LogicalOperator.And);
@@ -122,31 +127,37 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					new MetadataConditionExpression("AttributeOf", MetadataConditionOperator.Equals, null));
 
 				var attributeProperties = new MetadataPropertiesExpression
-				{
-					AllProperties = false
-				};
+										  {
+											  AllProperties = false
+										  };
 				attributeProperties.PropertyNames.AddRange("LogicalName");
 
 				var entityQueryExpression = new EntityQueryExpression
-				{
-					Criteria = entityFilter,
-					Properties = entityProperties,
-					AttributeQuery = new AttributeQueryExpression
-					{
-						Criteria = attributesFilter,
-						Properties = attributeProperties
-					}
-				};
+											{
+												Criteria = entityFilter,
+												Properties = entityProperties,
+												AttributeQuery = new AttributeQueryExpression
+																 {
+																	 Criteria = attributesFilter,
+																	 Properties = attributeProperties
+																 }
+											};
 
 				var retrieveMetadataChangesRequest = new RetrieveMetadataChangesRequest
-				{
-					Query = entityQueryExpression,
-					ClientVersionStamp = null
-				};
+													 {
+														 Query = entityQueryExpression,
+														 ClientVersionStamp = null
+													 };
 
-				var attributeNames = ((RetrieveMetadataChangesResponse)context.Execute(retrieveMetadataChangesRequest))
-					.EntityMetadata.First().Attributes
-					.Select(attribute => attribute.LogicalName).OrderBy(name => name).ToList();
+				List<string> attributeNames;
+
+				using (var service = GetConnection(connectionString))
+				{
+					attributeNames =
+						((RetrieveMetadataChangesResponse)service.Execute(retrieveMetadataChangesRequest))
+							.EntityMetadata.First().Attributes
+							.Select(attribute => attribute.LogicalName).OrderBy(name => name).ToList();
+				}
 
 				AttributeList[entityName] = attributeNames;
 			}
@@ -154,19 +165,24 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			return AttributeList[entityName];
 		}
 
-		private static void RefreshMessageCache(XrmServiceContext context)
+		private static void RefreshMessageCache(string connectionString)
 		{
-			MessageList = (from message in context.SdkMessageSet
-			               join filter in context.SdkMessageFilterSet
-				               on message.SdkMessageId equals filter.SdkMessageId.Id
-						  // where filter.IsCustomProcessingStepAllowed == true
-			               select new ComboMessage
-			                      {
-				                      MessageId = message.SdkMessageId.GetValueOrDefault(),
-				                      FilteredId = filter.SdkMessageFilterId.GetValueOrDefault(),
-				                      MessageName = message.Name,
-				                      EntityName = filter.PrimaryObjectTypeCode
-			                      }).ToList();
+			using (var service = GetConnection(connectionString))
+			using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+			{
+				MessageList =
+					(from message in context.SdkMessageSet
+					 join filter in context.SdkMessageFilterSet
+						 on message.SdkMessageId equals filter.SdkMessageId.Id
+					 // where filter.IsCustomProcessingStepAllowed == true
+					 select new ComboMessage
+							{
+								MessageId = message.SdkMessageId.GetValueOrDefault(),
+								FilteredId = filter.SdkMessageFilterId.GetValueOrDefault(),
+								MessageName = message.Name,
+								EntityName = filter.PrimaryObjectTypeCode
+							}).ToList();
+			}
 		}
 
 		internal static void ClearCache()

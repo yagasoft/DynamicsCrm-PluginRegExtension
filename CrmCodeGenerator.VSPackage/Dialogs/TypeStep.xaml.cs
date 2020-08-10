@@ -14,6 +14,7 @@ using System.Windows.Threading;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
 using CrmPluginRegExt.VSPackage.Model;
+using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
 
@@ -24,6 +25,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	/// </summary>
 	public partial class TypeStep : INotifyPropertyChanged, IDataErrorInfo
 	{
+		private readonly string connectionString;
+
 		#region Properties
 
 		private ComboUser user;
@@ -36,12 +39,11 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		public bool IsInitEntity { get; set; }
 		public bool IsInitMessage { get; set; }
 		public bool IsUpdate { get; set; }
-		public XrmServiceContext Context { get; set; }
 		public CrmTypeStep CrmStep { get; set; }
 
 		public string StepName
 		{
-			get { return CrmStep.Name; }
+			get => CrmStep.Name;
 			set
 			{
 				CrmStep.Name = value;
@@ -51,7 +53,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public List<string> EntityList
 		{
-			get { return entityList; }
+			get => entityList;
 			set
 			{
 				entityList = value;
@@ -61,7 +63,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public List<string> MessageList
 		{
-			get { return messageList; }
+			get => messageList;
 			set
 			{
 				messageList = value;
@@ -71,7 +73,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public List<ComboUser> UserList
 		{
-			get { return userList; }
+			get => userList;
 			set
 			{
 				userList = value;
@@ -81,7 +83,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public string Entity
 		{
-			get { return CrmStep.Entity; }
+			get => CrmStep.Entity;
 			set
 			{
 				CrmStep.Entity = value;
@@ -91,7 +93,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public string Message
 		{
-			get { return CrmStep.Message; }
+			get => CrmStep.Message;
 			set
 			{
 				CrmStep.Message = value;
@@ -101,7 +103,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public int ExecutionOrder
 		{
-			get { return CrmStep.ExecutionOrder; }
+			get => CrmStep.ExecutionOrder;
 			set
 			{
 				CrmStep.ExecutionOrder = value < 1 ? 1 : value;
@@ -111,7 +113,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public string Description
 		{
-			get { return CrmStep.Description; }
+			get => CrmStep.Description;
 			set
 			{
 				CrmStep.Description = value;
@@ -121,7 +123,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public ComboUser User
 		{
-			get { return user; }
+			get => user;
 			set
 			{
 				user = value;
@@ -132,7 +134,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPreValidation
 		{
-			get { return CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Prevalidation; }
+			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Prevalidation;
 			set
 			{
 				if (value)
@@ -148,7 +150,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPreOperation
 		{
-			get { return CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Preoperation; }
+			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Preoperation;
 			set
 			{
 				if (value)
@@ -164,7 +166,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPostOperation
 		{
-			get { return CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation; }
+			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation;
 			set
 			{
 				if (value)
@@ -178,7 +180,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsAsync
 		{
-			get { return CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Asynchronous; }
+			get => CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Asynchronous;
 			set
 			{
 				if (value)
@@ -192,7 +194,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsSync
 		{
-			get { return CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Synchronous; }
+			get => CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Synchronous;
 			set
 			{
 				if (value)
@@ -205,18 +207,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
-		public bool IsAsyncEnabled
-		{
-			get { return !IsPreValidation && !IsPreOperation; }
-		}
+		public bool IsAsyncEnabled => !IsPreValidation && !IsPreOperation;
 
 		public bool IsServer
 		{
-			get
-			{
-				return CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
-				       || CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
-			}
+			get => CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
+				|| CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
 
 			set
 			{
@@ -239,13 +235,10 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsOffline
 		{
-			get
-			{
-				return CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
-				       ||
-				       CrmStep.Deployment ==
-				       SdkMessageProcessingStep.Enums.SupportedDeployment.MicrosoftDynamics365ClientforOutlookOnly;
-			}
+			get => CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
+				||
+				CrmStep.Deployment ==
+					SdkMessageProcessingStep.Enums.SupportedDeployment.MicrosoftDynamics365ClientforOutlookOnly;
 
 			set
 			{
@@ -268,7 +261,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public string UnsecureConfig
 		{
-			get { return CrmStep.UnsecureConfig; }
+			get => CrmStep.UnsecureConfig;
 			set
 			{
 				CrmStep.UnsecureConfig = value;
@@ -278,7 +271,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public string SecureConfig
 		{
-			get { return CrmStep.SecureConfig; }
+			get => CrmStep.SecureConfig;
 			set
 			{
 				CrmStep.SecureConfig = value;
@@ -288,7 +281,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsDeleteJob
 		{
-			get { return CrmStep.IsDeleteJob; }
+			get => CrmStep.IsDeleteJob;
 			set
 			{
 				CrmStep.IsDeleteJob = value;
@@ -298,7 +291,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public ObservableCollection<string> AttributeList
 		{
-			get { return attributeList; }
+			get => attributeList;
 			set
 			{
 				attributeList = value;
@@ -308,7 +301,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public ObservableCollection<string> AttributesSelected
 		{
-			get { return attributesSelected; }
+			get => attributesSelected;
 			set
 			{
 				attributesSelected = value;
@@ -391,9 +384,9 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		#region Init
 
-		public TypeStep(CrmTypeStep crmStep, XrmServiceContext context)
+		public TypeStep(CrmTypeStep crmStep, string connectionString)
 		{
-			Context = context;
+			this.connectionString = connectionString;
 			CrmStep = crmStep;
 
 			InitializeComponent();
@@ -403,35 +396,34 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		{
 			DataContext = this;
 
-			new Thread(() =>
-			           {
-				           try
-				           {
-					           ShowBusy("Getting user list ...");
-					           UserList = new List<ComboUser>(CrmDataHelper
-						           .GetUsers(Context));
+			new Thread(
+				() =>
+				{
+					try
+					{
+						ShowBusy("Getting user list ...");
+						UserList = new List<ComboUser>(CrmDataHelper.GetUsers(connectionString));
 
-					           ShowBusy("Getting entity list ...");
-					           EntityList = new List<string>(CrmDataHelper
-						           .GetEntityNames(Context));
+						ShowBusy("Getting entity list ...");
+						EntityList = new List<string>(CrmDataHelper.GetEntityNames(connectionString));
 
-							   User = CrmStep.UserId == Guid.Empty
-										  ? UserList.First()
-										  : UserList.First(userQ => userQ.Id == CrmStep.UserId);
+						User = CrmStep.UserId == Guid.Empty
+							? UserList.First()
+							: UserList.First(userQ => userQ.Id == CrmStep.UserId);
 
-							   Entity = string.IsNullOrEmpty(Entity) ? "none" : Entity;
+						Entity = string.IsNullOrEmpty(Entity) ? "none" : Entity;
 
-							   Dispatcher.Invoke(() =>ComboBoxEntities.Focus());
-						   }
-						   catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+						Dispatcher.Invoke(() => ComboBoxEntities.Focus());
+					}
+					catch (Exception exception)
+					{
+						PopException(exception);
+					}
+					finally
+					{
+						HideBusy();
+					}
+				}).Start();
 		}
 
 		#endregion
@@ -495,7 +487,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ComboBoxMessages_OnPreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
 		{
-			ProcessMessageChange(); 
+			ProcessMessageChange();
 		}
 
 		#endregion
@@ -505,19 +497,20 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			string entitySelected = null;
 			string messageSelected = null;
 
-			Dispatcher.Invoke(() =>
-			                  {
-				                  entitySelected = (string)ComboBoxEntities.SelectedItem;
-				                  messageSelected = (string)ComboBoxMessages.SelectedItem;
-			                  });
+			Dispatcher.Invoke(
+				() =>
+							  {
+								  entitySelected = (string)ComboBoxEntities.SelectedItem;
+								  messageSelected = (string)ComboBoxMessages.SelectedItem;
+							  });
 
 			if (messageSelected == "Update")
 			{
 				try
 				{
 					ShowBusy("Getting attribute list ...");
-					AttributeList = new ObservableCollection<string>(CrmDataHelper
-						.GetEntityFieldNames(entitySelected, Context));
+					AttributeList = new ObservableCollection<string>(
+						CrmDataHelper.GetEntityFieldNames(entitySelected, connectionString));
 					AttributesSelectedString = CrmStep.Attributes;
 				}
 				catch (Exception exception)
@@ -544,31 +537,32 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			var entitySelected = (string)ComboBoxEntities.SelectedItem;
 
-			new Thread(() =>
-			           {
-				           if (!string.IsNullOrEmpty(entitySelected))
-				           {
-					           try
-					           {
-						           ShowBusy("Getting message list ...");
-						           MessageList = new List<string>(CrmDataHelper.GetMessageNames(entitySelected, Context));
-						           
-								   Dispatcher.Invoke(() => ComboBoxMessages.ItemsSource = MessageList);
+			new Thread(
+				() =>
+				{
+					if (!string.IsNullOrEmpty(entitySelected))
+					{
+						try
+						{
+							ShowBusy("Getting message list ...");
+							MessageList = new List<string>(CrmDataHelper.GetMessageNames(entitySelected, connectionString));
 
-						           IsInitEntity = true;
-							   }
-							   catch (Exception exception)
-					           {
-						           PopException(exception);
-					           }
-					           finally
-					           {
-						           HideBusy();
-					           }
-				           }
+							Dispatcher.Invoke(() => ComboBoxMessages.ItemsSource = MessageList);
 
-				           entityChanged = false;
-			           }).Start();
+							IsInitEntity = true;
+						}
+						catch (Exception exception)
+						{
+							PopException(exception);
+						}
+						finally
+						{
+							HideBusy();
+						}
+					}
+
+					entityChanged = false;
+				}).Start();
 		}
 
 		private void ProcessMessageChange()
@@ -582,13 +576,14 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			Attributes.IsEnabled = messageSelected == "Update";
 
-			new Thread(() =>
-			           {
-				           IsInitMessage = true;
-				           messageChanged = false;
+			new Thread(
+				() =>
+				{
+					IsInitMessage = true;
+					messageChanged = false;
 
-						   LoadAttributes();
-					   }).Start();
+					LoadAttributes();
+				}).Start();
 		}
 
 		private void UpdateStepName()
@@ -602,8 +597,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			//if (CanFormStepName(entitySelected, messageSelected) && IsNameOverwritable(StepName))
 			//{
-				StepName = GetStepName(typeName, messageSelected, entitySelected,
-					execOrder.ToString(), stage, mode);
+			StepName = GetStepName(typeName, messageSelected, entitySelected,
+				execOrder.ToString(), stage, mode);
 			//}
 		}
 
@@ -619,7 +614,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		//	return string.IsNullOrEmpty(stepName);
 		//}
 
-		private static string GetStepName(string typeName, string messageName, string entityName, string execOrder, string stage, string mode)
+		private static string GetStepName(string typeName, string messageName, string entityName, string execOrder, string stage,
+			string mode)
 		{
 			var builder = new StringBuilder();
 
@@ -645,11 +641,11 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void PopException(Exception exception)
 		{
 			Dispatcher.Invoke(() =>
-			                  {
-				                  var message = exception.Message
-				                                + (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
-				                  MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
-			                  });
+							  {
+								  var message = exception.Message
+									  + (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
+								  MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
+							  });
 		}
 
 		private void PopAlert(string title, string message, MessageBoxImage severity)
@@ -660,20 +656,20 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void ShowBusy(string message)
 		{
 			Dispatcher.Invoke(() =>
-			                  {
-				                  BusyIndicator.IsBusy = true;
-				                  BusyIndicator.BusyContent =
-					                  string.IsNullOrEmpty(message) ? "Please wait ..." : message;
-			                  }, DispatcherPriority.Send);
+							  {
+								  BusyIndicator.IsBusy = true;
+								  BusyIndicator.BusyContent =
+									  string.IsNullOrEmpty(message) ? "Please wait ..." : message;
+							  }, DispatcherPriority.Send);
 		}
 
 		private void HideBusy()
 		{
 			Dispatcher.Invoke(() =>
-			                  {
-				                  BusyIndicator.IsBusy = false;
-				                  BusyIndicator.BusyContent = "Please wait ...";
-			                  }, DispatcherPriority.Send);
+							  {
+								  BusyIndicator.IsBusy = false;
+								  BusyIndicator.BusyContent = "Please wait ...";
+							  }, DispatcherPriority.Send);
 		}
 
 		#endregion
@@ -716,7 +712,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 					case "Entity":
 					case "Message":
-						if (string.IsNullOrEmpty((string) GetType().GetProperty(columnName).GetValue(this)))
+						if (string.IsNullOrEmpty((string)GetType().GetProperty(columnName).GetValue(this)))
 						{
 							return "'" + columnName + "' is required!";
 						}
@@ -737,10 +733,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
-		public string Error
-		{
-			get { return null; }
-		}
+		public string Error => null;
 
 		#endregion
 	}

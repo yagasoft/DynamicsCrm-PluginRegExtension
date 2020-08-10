@@ -10,95 +10,58 @@ using Microsoft.Xrm.Sdk.Discovery;
 using System.Collections.ObjectModel;
 using System.Runtime.Caching;
 using System.ServiceModel.Description;
-using LinkDev.Libraries.EnhancedOrgService.Builders;
-using LinkDev.Libraries.EnhancedOrgService.Factories;
-using LinkDev.Libraries.EnhancedOrgService.Params;
-using LinkDev.Libraries.EnhancedOrgService.Pools;
-using LinkDev.Libraries.EnhancedOrgService.Services;
+using System.Text.RegularExpressions;
+using CrmPluginEntities;
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Client.Caching;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
+using Yagasoft.Libraries.EnhancedOrgService.Builders;
+using Yagasoft.Libraries.EnhancedOrgService.Factories;
+using Yagasoft.Libraries.EnhancedOrgService.Helpers;
+using Yagasoft.Libraries.EnhancedOrgService.Params;
+using Yagasoft.Libraries.EnhancedOrgService.Pools;
+using Yagasoft.Libraries.EnhancedOrgService.Services;
 
 namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	public class ConnectionHelper
     {
-		private static readonly IDictionary<string, EnhancedServiceFactory<EnhancedOrgService>> factoryCache
-			= new Dictionary<string, EnhancedServiceFactory<EnhancedOrgService>>();
+		private static readonly IDictionary<string, EnhancedServicePool<EnhancedOrgService>> poolCache
+			= new Dictionary<string, EnhancedServicePool<EnhancedOrgService>>();
+
+		internal static void ResetCache(string connectionString)
+		{
+			Status.Update($"Clearing cache ... ");
+			poolCache.TryGetValue(connectionString, out var pool);
+			pool?.ClearFactoryCache();
+			Status.Update($"Finished clearing cache.");
+		}
 
 		internal static IEnhancedOrgService GetConnection(string connectionString, bool noCache = false)
 		{
-			Status.Update("Creating connection to CRM ... ", false);
-
-			factoryCache.TryGetValue(connectionString, out var factory);
-
-			if (factory == null)
-			{
-				var template = EnhancedServiceBuilder.NewBuilder
-					.Initialise(connectionString)
-					.AddCaching()
-					.Finalise()
-					.GetBuild();
-				factoryCache[connectionString] = factory = new EnhancedServiceFactory<EnhancedOrgService>(template);
-			}
-
 			if (noCache)
 			{
-				factory.ClearCache();
+				ResetCache(connectionString);
 			}
 			
-			var service = factory.CreateEnhancedService();
+			poolCache.TryGetValue(connectionString, out var pool);
 
-			Status.Update("done!");
+			if (pool == null)
+			{
+				Status.Update($"Creating connection pool to CRM ... ");
+				Status.Update($"Connection String:"
+					+ $" '{Regex.Replace(connectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}'.");
+
+				poolCache[connectionString] = pool = EnhancedServiceHelper
+					.GetPool(new EnhancedServiceParams(connectionString) { CachingParams = new CachingParams() });
+
+				Status.Update($"Created connection pool.");
+			}
+
+			var service = pool.GetService();
 
 			return service;
-		}
-
-		public static OrganizationDetail GetOrganizationDetails(Settings settings)
-		{
-			var orgs = GetOrganizations(settings);
-			var details = orgs.FirstOrDefault(d => d.UrlName == settings.CrmOrg);
-			return details;
-		}
-
-		public static ObservableCollection<string> GetOrgList(Settings settings)
-		{
-			var orgs = GetOrganizations(settings);
-			var newOrgs = new ObservableCollection<string>(orgs.Select(d => d.UrlName).ToList());
-			return newOrgs;
-		}
-
-		public static OrganizationDetailCollection GetOrganizations(Settings settings)
-		{
-			var credentials = new ClientCredentials();
-
-			if (settings.UseIFD || settings.UseOffice365 || settings.UseOnline)
-			{
-				credentials.UserName.UserName = settings.Username;
-				credentials.UserName.Password = settings.Password;
-			}
-			else
-			{
-				credentials.Windows.ClientCredential =
-					new System.Net.NetworkCredential(settings.Username, settings.Password, settings.Domain);
-			}
-
-			using (var discoveryProxy = new DiscoveryServiceProxy(settings.GetDiscoveryUri(), null, credentials, null))
-			{
-				discoveryProxy.Authenticate();
-
-				var retrieveOrganizationsRequest = new RetrieveOrganizationsRequest
-				{
-					AccessType = EndpointAccessType.Default,
-					Release = OrganizationRelease.Current
-				};
-
-				var retrieveOrganizationsResponse = (RetrieveOrganizationsResponse)discoveryProxy
-					.Execute(retrieveOrganizationsRequest);
-
-				return retrieveOrganizationsResponse.Details;
-			}
 		}
 	}
 }

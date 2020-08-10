@@ -5,10 +5,12 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Threading;
 using CrmPluginEntities;
 using Microsoft.Xrm.Sdk;
+using Yagasoft.Libraries.Common;
 
 #endregion
 
@@ -24,7 +26,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public string Name
 		{
-			get { return name; }
+			get => name;
 			set
 			{
 				name = value;
@@ -58,20 +60,20 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		#endregion
 
-		public void UpdateInfo(XrmServiceContext context)
+		public void UpdateInfo(string connectionString)
 		{
 			if (Id == Guid.Empty)
 			{
 				throw new Exception("Can't fetch '" + GetType().Name + "' info with empty ID.");
 			}
 
-			RunUpdateLogic(context);
+			RunUpdateLogic(connectionString);
 
 			IsUpdated = true;
 			OnUpdate();
 		}
 
-		protected abstract void RunUpdateLogic(XrmServiceContext context);
+		protected abstract void RunUpdateLogic(string connectionString);
 
 		public TEntityType Clone<TEntityType>() where TEntityType : CrmEntityNonGeneric
 		{
@@ -82,9 +84,11 @@ namespace CrmPluginRegExt.VSPackage.Model
 	public abstract class CrmEntity<TChildType> : CrmEntityNonGeneric where TChildType : CrmEntityNonGeneric
 	{
 		private ObservableCollection<TChildType> children = new ObservableCollection<TChildType>();
+		protected ObservableCollection<TChildType> Unfiltered { get; set; }
+
 		public ObservableCollection<TChildType> Children
 		{
-			get { return children; }
+			get => children;
 			set
 			{
 				if (children == value)
@@ -96,6 +100,24 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 				OnPropertyChanged("Children");
 			}
+		}
+
+		public void Filter(string filterString)
+		{
+			Children = Unfiltered;
+
+			if (Id == Guid.Empty)
+			{
+				return;
+			}
+
+			Children
+				= new ObservableCollection<TChildType>(Children
+					.Where(e => Regex.IsMatch(e.Name.ToLower(), filterString)
+						|| Regex.IsMatch(e.DisplayName.ToLower(), filterString)));
+
+			IsUpdated = true;
+			OnUpdate();
 		}
 	}
 }

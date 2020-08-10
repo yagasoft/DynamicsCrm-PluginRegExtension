@@ -20,7 +20,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		#region Properties
 
 		public CrmStepImage CrmImage { get; set; }
-		public XrmServiceContext Context { get; set; }
 		public bool IsUpdate { get; set; }
 
 		#endregion
@@ -39,9 +38,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		#endregion
 
-		public StepImage(CrmStepImage crmImage, XrmServiceContext context)
+		public StepImage(CrmStepImage crmImage)
 		{
-			Context = context;
 			CrmImage = crmImage;
 
 			InitializeComponent();

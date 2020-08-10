@@ -94,22 +94,6 @@
         </Strings>
       </Button>
 
-      <Button guid="guidPluginRegExt_VSPackageCmdSet" id="cmdidCopyPluginSettings" priority="0x0400" type="Button">
-        <Parent guid="guidPluginRegExt_VSPackageCmdSet" id="PluginRegMenuGroupMulti" />
-        <Icon guid="guidImages" id="bmpPic1" />
-        <Strings>
-          <ButtonText>Copy plugin settings</ButtonText>
-        </Strings>
-      </Button>
-
-      <!--<Button guid="guidPluginRegExt_VSPackageCmdSet" id="cmdidDeletePlugin" priority="0x0400" type="Button">
-			<Parent guid="guidPluginRegExt_VSPackageCmdSet" id="PluginRegMenuGroup" />
-			<Icon guid="guidImages" id="bmpPic1" />
-			<Strings>
-				<ButtonText>Unregister plugin assembly (DELETE!)</ButtonText>
-			</Strings>
-		</Button>-->
-
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -138,8 +122,6 @@
       <IDSymbol name="cmdidUpdatePlugin" value="0x980" />
       <IDSymbol name="cmdidMultiRegisterModifyPlugin" value="0x940" />
       <IDSymbol name="cmdidMultiUpdatePlugin" value="0x950" />
-      <IDSymbol name="cmdidCopyPluginSettings" value="0x930" />
-      <!--<IDSymbol name="cmdidDeletePlugin" value="0x990" />-->
     </GuidSymbol>
     
     <GuidSymbol name="guidImages" value="{5243878e-1841-4305-b480-bd4177b3485a}">

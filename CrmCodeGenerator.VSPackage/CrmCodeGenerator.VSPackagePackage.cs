@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Windows;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Dialogs;
@@ -16,6 +17,7 @@ using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Yagasoft.Libraries.Common;
 
 #endregion
 
@@ -42,9 +44,7 @@ namespace CrmPluginRegExt.VSPackage
 		// This attribute is needed to let the shell know that this package exposes some menus.
 		[ProvideMenuResource("Menus.ctmenu", 1)]
 		[Guid(GuidList.guidPluginRegExt_VSPackagePkgString)]
-	public sealed class CrmPluginRegExt_VSPackagePackage
-		: Package,
-			IVsSolutionEvents3
+	public sealed class CrmPluginRegExt_VSPackagePackage : Package, IVsSolutionEvents3
 	{
 		/// <summary>
 		///     Default constructor of the package.
@@ -100,15 +100,6 @@ namespace CrmPluginRegExt.VSPackage
 					(int)PkgCmdIDList.cmdidMultiUpdatePlugin);
 				var multiUpdateItem = new MenuCommand(UpdatePluginCallback, multiUpdateCmd);
 				mcs.AddCommand(multiUpdateItem);
-
-				var copySettingsCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
-					(int)PkgCmdIDList.cmdidCopyPluginSettings);
-				var copySettingsItem = new MenuCommand(CopySettingsCallback, copySettingsCmd);
-				mcs.AddCommand(copySettingsItem);
-
-				//var deleteCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet, (int) PkgCmdIDList.cmdidDeletePlugin);
-				//var deleteItem = new MenuCommand(DeletePluginCallback, deleteCmd);
-				//mcs.AddCommand(deleteItem);
 			}
 
 			AdviseSolutionEvents();
@@ -250,21 +241,17 @@ namespace CrmPluginRegExt.VSPackage
 		{
 			DteHelper.SetCurrentProject(project);
 
-			var settingsArray = Configuration.LoadConfigs();
+			var settingsArray = Configuration.LoadSettings();
 			var settings = settingsArray.GetSelectedSettings();
 
-			// if an ID does not exist and no connection info, then it's a new run
-			if (settings.Id == Guid.Empty
-				&& (string.IsNullOrEmpty(settings.ServerName) || string.IsNullOrEmpty(settings.Username)))
+			// if no connection info, then it's a new run
+			if (settings.ConnectionString.IsEmpty())
 			{
-				CopySettings();
 				RegisterModifyPlugin(project);
 			}
 			else
 			{
-				var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString());
-				var context = new XrmServiceContext(service);
-				var registration = new AssemblyRegistration(context, service);
+				var registration = new AssemblyRegistration(settings.ConnectionString);
 
 				registration.PropertyChanged +=
 					(o, args) =>
@@ -287,209 +274,18 @@ namespace CrmPluginRegExt.VSPackage
 						}
 					};
 
-				// if the assembly is registered, get ID and update
-				if (CrmAssemblyHelper.IsAssemblyRegistered(context))
+				// if the assembly is registered, update
+				if (CrmAssemblyHelper.IsAssemblyRegistered(settings.ConnectionString))
 				{
-					var id = settings.Id == Guid.Empty
-						? CrmAssemblyHelper.GetAssemblyId(context)
-						: settings.Id;
-					registration.UpdateAssembly(id, null);
-					Status.Update($"Ran update on: {settings.ServerName} - {settings.CrmOrg} - {settings.Username}.");
+					var id = CrmAssemblyHelper.GetAssemblyId(settings.ConnectionString);
+					registration.UpdateAssembly(null);
+					Status.Update($"Ran update on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}.");
 					Status.Update($"For project: {DteHelper.GetProjectName(project)}.");
 				}
 				else
 				{
-					// else, reset and open dialogue
-					// reset ID
-					settings.Id = Guid.Empty;
-					Configuration.SaveConfigs(settingsArray);
-
+					// else open dialogue
 					RegisterModifyPlugin(project);
-				}
-			}
-		}
-
-		private void CopySettingsCallback(object sender, EventArgs args)
-		{
-			try
-			{
-				var session = Math.Abs(DateTime.Now.ToString(CultureInfo.CurrentCulture).GetHashCode());
-				Status.Update($">>>>> Starting new session: {session} <<<<<");
-
-				var selected = DteHelper.GetSelectedProjects().ToArray();
-
-				if (selected.Length < 2)
-				{
-					throw new UserException("Please select at least two projects first.");
-				}
-
-				Status.Update($">>> Processing copy <<<");
-
-				if (!CopySettings())
-				{
-					throw new UserException("Couldn't find settings in any of the selected projects to copy.");
-				}
-
-				Status.Update($"^^^ Finished processing copy ^^^");
-
-				Status.Update($"^^^^^ Finished session: {session} ^^^^^");
-			}
-			catch (UserException e)
-			{
-				VsShellUtilities.ShowMessageBox(ServiceProvider.GlobalProvider, e.Message, "Error", OLEMSGICON.OLEMSGICON_WARNING,
-					OLEMSGBUTTON.OLEMSGBUTTON_OK, OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-			}
-			catch (Exception e)
-			{
-				var error1 = "[ERROR] " + e.Message
-					+ (e.InnerException != null ? "\n" + "[ERROR] " + e.InnerException.Message : "");
-				Status.Update(error1);
-				Status.Update(e.StackTrace);
-				Status.Update("Unable to update assembly, see error above.");
-				var error2 = e.Message + "\n" + e.StackTrace;
-				MessageBox.Show(error2, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-			}
-			finally
-			{
-				Status.Update(">>>>> DONE! <<<<<");
-			}
-		}
-
-		private static bool CopySettings()
-		{
-			var projects = DteHelper.GetSelectedProjects().ToArray();
-
-			if (projects.Length <= 1)
-			{
-				return false;
-			}
-
-			var currentProject = DteHelper.CurrentProject;
-			SettingsArray sourceSettingsArray = null;
-
-			foreach (var project in projects)
-			{
-				DteHelper.SetCurrentProject(project);
-
-				sourceSettingsArray = Configuration.LoadConfigs();
-				var settings = sourceSettingsArray.GetSelectedSettings();
-
-				if (settings.Id == Guid.Empty
-					&& (string.IsNullOrEmpty(settings.ServerName) || string.IsNullOrEmpty(settings.Username)))
-				{
-					continue;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			if (sourceSettingsArray == null)
-			{
-				return false;
-			}
-
-			Status.Update($"Copying settings from project: {DteHelper.CurrentProject.Name} ...");
-
-			foreach (var settingsQ in sourceSettingsArray.SettingsList)
-			{
-				settingsQ.Id = Guid.Empty;
-			}
-
-			foreach (var project in projects)
-			{
-				DteHelper.SetCurrentProject(project);
-
-				var settingsArray = Configuration.LoadConfigs();
-				var settings = settingsArray.GetSelectedSettings();
-
-				if (settings.Id == Guid.Empty
-					&& (string.IsNullOrEmpty(settings.ServerName) || string.IsNullOrEmpty(settings.Username)))
-				{
-					Configuration.SaveConfigs(sourceSettingsArray);
-					Status.Update($"Copied settings to project: {project.Name}.");
-				}
-			}
-
-			DteHelper.SetCurrentProject(currentProject);
-
-			return true;
-		}
-
-		private void DeletePluginCallback(object sender, EventArgs args)
-		{
-			try
-			{
-				if (DteHelper.IsConfirmed("Are you sure you want to UNregister this plugin?" +
-					" This means that the plugin and all its steps will be deleted!", "Unregistration"))
-				{
-					Status.Update(">>>>> Starting new session <<<<<");
-					DeletePlugin();
-				}
-			}
-			catch (UserException e)
-			{
-				VsShellUtilities.ShowMessageBox(ServiceProvider.GlobalProvider, e.Message, "Error", OLEMSGICON.OLEMSGICON_WARNING,
-					OLEMSGBUTTON.OLEMSGBUTTON_OK, OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-			}
-			catch (Exception e)
-			{
-				var error1 = "[ERROR] " + e.Message
-					+ (e.InnerException != null ? "\n" + "[ERROR] " + e.InnerException.Message : "");
-				Status.Update(error1);
-				Status.Update(e.StackTrace);
-				Status.Update("Unable to delete assembly, see error above.");
-				var error2 = e.Message + "\n" + e.StackTrace;
-				MessageBox.Show(error2, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-			}
-			finally
-			{
-				Status.Update(">>>>> DONE! <<<<<");
-			}
-		}
-
-		private void DeletePlugin()
-		{
-			var dte2 = GetService(typeof(SDTE)) as DTE2;
-
-			var project = dte2.GetSelectedProject();
-
-			if (string.IsNullOrWhiteSpace(project?.FullName))
-			{
-				throw new UserException("Please select a project first!");
-			}
-
-			var settingsArray = Configuration.LoadConfigs();
-			var settings = settingsArray.GetSelectedSettings();
-
-			// if an ID does not exist and no connection info, then it's a new run
-			if (settings.Id == Guid.Empty
-				&& (string.IsNullOrEmpty(settings.ServerName) || string.IsNullOrEmpty(settings.Username)))
-			{
-				RegisterModifyPlugin(project);
-			}
-			else
-			{
-				var service = ConnectionHelper.GetConnection(settings.GetOrganizationCrmConnectionString());
-				var context = new XrmServiceContext(service);
-				var registration = new AssemblyRegistration(context, service);
-
-				// if the assembly is registered, get ID and delete
-				if (CrmAssemblyHelper.IsAssemblyRegistered(context))
-				{
-					var id = settings.Id == Guid.Empty
-						? CrmAssemblyHelper.GetAssemblyId(context)
-						: settings.Id;
-					registration.DeleteAssembly(id);
-				}
-				else
-				{
-					Status.Update("Assembly already deleted!");
-
-					// else, reset ID
-					settings.Id = Guid.Empty;
-					Configuration.SaveConfigs(settingsArray);
 				}
 			}
 		}

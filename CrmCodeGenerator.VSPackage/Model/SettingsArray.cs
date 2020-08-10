@@ -4,12 +4,12 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
 
 #endregion
 
 namespace CrmPluginRegExt.VSPackage.Model
 {
-	[Serializable]
 	public class SettingsArray : INotifyPropertyChanged
 	{
 		private int selectedSettingsIndex;
@@ -25,6 +25,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 			}
 		}
 
+		[JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
 		public ObservableCollection<Settings> SettingsList
 		{
 			get => settingsList;

@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension](https://badges.gitter.im/yagasoft/DynamicsCrm-PluginRegExtension.svg)](https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-### Version: 1.13.6
+### Version: 2.1.1
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
@@ -22,6 +22,15 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Changes
 
+#### _v2.1.1 (2020-08-10)_
++ Added: filtering
++ Changed: switched to explicit Connection Strings to allow for a broader support of newer features
++ Changed: save settings as JSON (at the solution level)
++ Updated: SDK packages
++ Improved: switched to EnhancedOrgService package for improved connection pooling and caching
++ Improved: performance
++ Improved: UI layout
++ Fixed: issues
 #### _v1.13.6 (2018-12-18)_
 + Fixed: thread deadlock
 #### _v1.13.4 (2018-09-13)_
@@ -30,4 +39,4 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 + Fixed: updating image throws exception
 
 ---
-**Copyright &copy; by Ahmed el-Sawalhy ([Yagasoft](http://yagasoft.com))** -- _GPL v3 Licence_
+**Copyright &copy; by Ahmed Elsawalhy ([Yagasoft](http://yagasoft.com))** -- _GPL v3 Licence_

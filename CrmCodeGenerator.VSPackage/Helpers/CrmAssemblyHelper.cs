@@ -1,11 +1,13 @@
-﻿using System;
+﻿#region Imports
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using CrmPluginEntities;
-using CrmPluginRegExt.VSPackage.Model;
-using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Client;
+using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
+
+#endregion
 
 namespace CrmPluginRegExt.VSPackage.Helpers
 {
@@ -15,18 +17,25 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		///     Returns the plugin entity, but only the ID is included.
 		/// </summary>
 		/// <returns>Assembly entity.</returns>
-		internal static PluginAssembly GetCrmAssembly(XrmServiceContext context)
+		internal static PluginAssembly GetCrmAssembly(string connectionString)
 		{
 			Status.Update("Fetching CRM assembly ... ");
 
-			var assembly = (from assemblyQ in context.PluginAssemblySet
-							where assemblyQ.Name == DteHelper.GetProjectName(null)
-							select new PluginAssembly
+			PluginAssembly assembly;
+
+			using (var service = GetConnection(connectionString))
+			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			{
+				assembly =
+					(from assemblyQ in context.PluginAssemblySet
+					 where assemblyQ.Name == DteHelper.GetProjectName(null)
+					 select new PluginAssembly
 							{
 								Id = assemblyQ.Id,
 								Name = assemblyQ.Name,
 								IsolationMode = assemblyQ.IsolationMode
 							}).FirstOrDefault();
+			}
 
 			Status.Update("** Finished fetching CRM assembly.");
 
@@ -37,11 +46,11 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		///     Returns the plugin ID.
 		/// </summary>
 		/// <returns>Assembly Id.</returns>
-		internal static Guid GetAssemblyId(XrmServiceContext context)
+		internal static Guid GetAssemblyId(string connectionString)
 		{
 			Status.Update("Getting assembly ID ... ");
 
-			var assembly = GetCrmAssembly(context);
+			var assembly = GetCrmAssembly(connectionString);
 
 			if (assembly == null)
 			{
@@ -55,22 +64,22 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			return id;
 		}
 
-		internal static bool IsAssemblyRegistered(XrmServiceContext context)
+		internal static bool IsAssemblyRegistered(string connectionString)
 		{
 			Status.Update("Checking assembly registration ... ");
 
-			var registered = GetCrmAssembly(context) != null;
+			var registered = GetCrmAssembly(connectionString) != null;
 
 			Status.Update("** Finished checking assembly registration. Registered => " + registered);
 
 			return registered;
 		}
 
-		internal static bool IsAssemblySandbox(XrmServiceContext context)
+		internal static bool IsAssemblySandbox(string connectionString)
 		{
 			Status.Update("Checking assembly isolation ... ");
 
-			var assembly = GetCrmAssembly(context);
+			var assembly = GetCrmAssembly(connectionString);
 
 			if (assembly == null)
 			{
@@ -78,25 +87,31 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			}
 
 			var isolated = assembly.IsolationMode.Value
-						   == (int)PluginAssembly.Enums.IsolationMode.Sandbox;
+				== (int)PluginAssembly.Enums.IsolationMode.Sandbox;
 
 			Status.Update("** Finished checking assembly isolation. Isolated => " + isolated);
 
 			return isolated;
 		}
 
-		internal static List<PluginType> GetCrmTypes(Guid assemblyId, XrmServiceContext context)
+		internal static List<PluginType> GetCrmTypes(Guid assemblyId, string connectionString)
 		{
 			Status.Update("Getting types from CRM ... ");
 
-			var types = (from type in context.PluginTypeSet
-						 where type.PluginAssemblyId.Id == assemblyId
-						 select type).ToList();
+			List<PluginType> types;
+
+			using (var service = GetConnection(connectionString))
+			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			{
+				types =
+					(from type in context.PluginTypeSet
+					 where type.PluginAssemblyId.Id == assemblyId
+					 select type).ToList();
+			}
 
 			Status.Update("** Finished getting types from CRM.");
 
 			return types;
 		}
-
 	}
 }

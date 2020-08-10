@@ -5,6 +5,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
+using Microsoft.Xrm.Sdk.Client;
+using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
 
@@ -21,7 +23,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public string Message
 		{
-			get  { return message; }
+			get => message;
 			set
 			{
 				message = value;
@@ -39,13 +41,14 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public bool IsDisabled
 		{
-			get { return isDisabled; }
+			get => isDisabled;
 			set
 			{
 				isDisabled = value;
 				OnPropertyChanged("IsDisabledString");
 			}
 		}
+
 		public SdkMessageProcessingStep.Enums.Stage Stage { get; set; }
 		public SdkMessageProcessingStep.Enums.Mode Mode { get; set; }
 		public SdkMessageProcessingStep.Enums.SupportedDeployment Deployment { get; set; }
@@ -57,10 +60,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		internal CrmPluginType Type { get; set; }
 
-		public string IsDisabledString
-		{
-			get { return IsDisabled ? "[Disabled] " : ""; }
-		}
+		public string IsDisabledString => IsDisabled ? "[Disabled] " : "";
 
 		#endregion
 
@@ -72,62 +72,69 @@ namespace CrmPluginRegExt.VSPackage.Model
 			Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
 		}
 
-		protected override void RunUpdateLogic(XrmServiceContext context)
+		protected override void RunUpdateLogic(string connectionString)
 		{
-			var result = (from step in context.SdkMessageProcessingStepSet
-			              join image in context.SdkMessageProcessingStepImageSet
-				              on step.SdkMessageProcessingStepId equals image.SdkMessageProcessingStepId.Id
-				              into imageOuterT
-			              from imageOuterQ in imageOuterT.DefaultIfEmpty()
-			              where step.SdkMessageProcessingStepId == Id
-			              select new
-			                     {
-				                     id = step.SdkMessageProcessingStepId.Value,
-				                     name = step.Name,
-				                     imageId = imageOuterQ.SdkMessageProcessingStepImageId ?? Guid.Empty,
-				                     imageName = imageOuterQ.Name
-			                     }).ToList();
+			using (var service = GetConnection(connectionString))
+			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			{
+			var result =
+				(from step in context.SdkMessageProcessingStepSet
+				 join image in context.SdkMessageProcessingStepImageSet
+					 on step.SdkMessageProcessingStepId equals image.SdkMessageProcessingStepId.Id
+					 into imageOuterT
+				 from imageOuterQ in imageOuterT.DefaultIfEmpty()
+				 where step.SdkMessageProcessingStepId == Id
+				 select new
+						{
+							id = step.SdkMessageProcessingStepId.Value,
+							name = step.Name,
+							imageId = imageOuterQ.SdkMessageProcessingStepImageId ?? Guid.Empty,
+							imageName = imageOuterQ.Name
+						}).ToList();
 
-			var messageResult = (from step in context.SdkMessageProcessingStepSet
-			                     join message in context.SdkMessageSet
-				                     on step.SdkMessageId.Id equals message.SdkMessageId
-			                     where step.SdkMessageProcessingStepId == Id
-			                     select new
-			                            {
-				                            messageName = message.Name,
-				                            messageId = message.SdkMessageId ?? Guid.Empty,
-				                            attributes = step.FilteringAttributes,
-				                            userId = step.ImpersonatingUserId,
-				                            rank = step.Rank,
-				                            description = step.Description,
-				                            stage = step.Stage,
-				                            mode = step.Mode,
-				                            deployment = step.SupportedDeployment,
-				                            deleteJob = step.AsyncAutoDelete,
-				                            unsecureConfiguration = step.Configuration,
-											isDisabled = step.StateCode == SdkMessageProcessingStepState.Disabled
-			                            }).FirstOrDefault();
+			var messageResult =
+				(from step in context.SdkMessageProcessingStepSet
+				 join message in context.SdkMessageSet
+					 on step.SdkMessageId.Id equals message.SdkMessageId
+				 where step.SdkMessageProcessingStepId == Id
+				 select new
+						{
+							messageName = message.Name,
+							messageId = message.SdkMessageId ?? Guid.Empty,
+							attributes = step.FilteringAttributes,
+							userId = step.ImpersonatingUserId,
+							rank = step.Rank,
+							description = step.Description,
+							stage = step.Stage,
+							mode = step.Mode,
+							deployment = step.SupportedDeployment,
+							deleteJob = step.AsyncAutoDelete,
+							unsecureConfiguration = step.Configuration,
+							isDisabled = step.StateCode == SdkMessageProcessingStepState.Disabled
+						}).FirstOrDefault();
 
-			var filterResult = (from step in context.SdkMessageProcessingStepSet
-			                    join filter in context.SdkMessageFilterSet
-				                    on step.SdkMessageFilterId.Id equals filter.SdkMessageFilterId
-			                    where step.SdkMessageProcessingStepId == Id
-			                    select new
-			                           {
-				                           entityName = filter.PrimaryObjectTypeCode,
-				                           filterId = filter.SdkMessageFilterId ?? Guid.Empty,
-			                           }).FirstOrDefault();
+			var filterResult =
+				(from step in context.SdkMessageProcessingStepSet
+				 join filter in context.SdkMessageFilterSet
+					 on step.SdkMessageFilterId.Id equals filter.SdkMessageFilterId
+				 where step.SdkMessageProcessingStepId == Id
+				 select new
+						{
+							entityName = filter.PrimaryObjectTypeCode,
+							filterId = filter.SdkMessageFilterId ?? Guid.Empty,
+						}).FirstOrDefault();
 
-			var secureResult = (from step in context.SdkMessageProcessingStepSet
-			                    join secureConfig in context.SdkMessageProcessingStepSecureConfigSet
-				                    on step.SdkMessageProcessingStepSecureConfigId.Id
-				                    equals secureConfig.SdkMessageProcessingStepSecureConfigId
-			                    where step.SdkMessageProcessingStepId == Id
-			                    select new
-			                           {
-				                           id = secureConfig.SdkMessageProcessingStepSecureConfigId,
-				                           secureConfig = secureConfig.SecureConfig
-			                           }).FirstOrDefault();
+			var secureResult =
+				(from step in context.SdkMessageProcessingStepSet
+				 join secureConfig in context.SdkMessageProcessingStepSecureConfigSet
+					 on step.SdkMessageProcessingStepSecureConfigId.Id
+					 equals secureConfig.SdkMessageProcessingStepSecureConfigId
+				 where step.SdkMessageProcessingStepId == Id
+				 select new
+						{
+							id = secureConfig.SdkMessageProcessingStepSecureConfigId,
+							secureConfig = secureConfig.SecureConfig
+						}).FirstOrDefault();
 
 			if (messageResult != null)
 			{
@@ -152,9 +159,9 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 				ExecutionOrder = messageResult.rank ?? 1;
 				Description = messageResult.description;
-				Stage = (SdkMessageProcessingStep.Enums.Stage) messageResult.stage.Value;
-				Mode = (SdkMessageProcessingStep.Enums.Mode) messageResult.mode.Value;
-				Deployment = (SdkMessageProcessingStep.Enums.SupportedDeployment) messageResult.deployment.Value;
+				Stage = (SdkMessageProcessingStep.Enums.Stage)messageResult.stage.Value;
+				Mode = (SdkMessageProcessingStep.Enums.Mode)messageResult.mode.Value;
+				Deployment = (SdkMessageProcessingStep.Enums.SupportedDeployment)messageResult.deployment.Value;
 				IsDeleteJob = messageResult.deleteJob ?? false;
 				UnsecureConfig = messageResult.unsecureConfiguration;
 				IsDisabled = messageResult.isDisabled;
@@ -168,20 +175,22 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 			if (!result.Any())
 			{
-				Children = null;
+				Children = Unfiltered = null;
 				return;
 			}
 
 			Name = result.First().name;
-			Children = new ObservableCollection<CrmStepImage>(result
+			Children = Unfiltered = new ObservableCollection<CrmStepImage>(result
 				.GroupBy(image => image.imageId)
 				.Where(imageGroup => imageGroup.First().imageId != Guid.Empty)
-				.Select(imageGroup => new CrmStepImage
-				                      {
-					                      Id = imageGroup.First().imageId,
-					                      Name = imageGroup.First().imageName,
-					                      Step = this
-				                      }).OrderBy(image => image.Name));
+				.Select(imageGroup =>
+					new CrmStepImage
+					{
+						Id = imageGroup.First().imageId,
+						Name = imageGroup.First().imageName,
+						Step = this
+					}).OrderBy(image => image.Name));
+			}
 		}
 	}
 }

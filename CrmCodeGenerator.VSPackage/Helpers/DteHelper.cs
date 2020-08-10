@@ -146,6 +146,11 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			return project.Properties.Item("DefaultNamespace").Value.ToString();
 		}
 
+		public static string GetPath(this Solution solution)
+		{
+			return Path.GetDirectoryName(solution.FullName);
+		}
+
 		public static string GetProjectDirectory(this Project project)
 		{
 			return Path.GetDirectoryName(project.FullName);

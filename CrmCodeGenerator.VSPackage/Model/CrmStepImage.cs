@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using CrmPluginEntities;
+using Microsoft.Xrm.Sdk.Client;
+using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
 
@@ -17,7 +19,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public string EntityAlias
 		{
-			get { return entityAlias; }
+			get => entityAlias;
 			set
 			{
 				entityAlias = value;
@@ -29,7 +31,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public bool IsPreImage
 		{
-			get { return isPreImage; }
+			get => isPreImage;
 			set
 			{
 				isPreImage = value;
@@ -55,7 +57,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public bool IsPostImage
 		{
-			get { return isPostImage; }
+			get => isPostImage;
 			set
 			{
 				isPostImage = value;
@@ -77,21 +79,12 @@ namespace CrmPluginRegExt.VSPackage.Model
 			}
 		}
 
-		public bool IsPreImageEnabled
-		{
-			get { return Step.Message == "Update" || Step.Message == "Delete"; }
-		}
+		public bool IsPreImageEnabled => Step.Message == "Update" || Step.Message == "Delete";
 
-		public bool IsPostImageEnabled
-		{
-			get
-			{
-				return (Step.Message == "Create"
-				        && Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation)
-				       || (Step.Message == "Update"
-				           && Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation);
-			}
-		}
+		public bool IsPostImageEnabled => (Step.Message == "Create"
+			&& Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation)
+			|| (Step.Message == "Update"
+				&& Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation);
 
 		public SdkMessageProcessingStepImage.Enums.ImageType ImageType { get; set; }
 
@@ -99,7 +92,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public ObservableCollection<string> AttributeList
 		{
-			get { return attributeList; }
+			get => attributeList;
 			set
 			{
 				attributeList = value;
@@ -111,7 +104,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public ObservableCollection<string> AttributesSelected
 		{
-			get { return attributesSelected; }
+			get => attributesSelected;
 			set
 			{
 				attributesSelected = value;
@@ -170,7 +163,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		internal CrmTypeStep Step
 		{
-			get { return step; }
+			get => step;
 			set
 			{
 				step = value;
@@ -181,34 +174,39 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		#endregion
 
-		protected override void RunUpdateLogic(XrmServiceContext context)
+		protected override void RunUpdateLogic(string connectionString)
 		{
-			var result = (from imageQ in context.SdkMessageProcessingStepImageSet
-			              where imageQ.SdkMessageProcessingStepImageId == Id
-			              select new
-			                     {
-				                     id = imageQ.SdkMessageProcessingStepImageId.Value,
-				                     name = imageQ.Name,
-				                     entityAlias = imageQ.EntityAlias,
-				                     attributes = imageQ.Attributes1,
-				                     imageType = imageQ.ImageType.Value,
-			                     }).ToList();
-
-			if (!result.Any())
+			using (var service = GetConnection(connectionString))
+			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
 			{
-				AttributesSelectedString = null;
-				return;
+				var result =
+					(from imageQ in context.SdkMessageProcessingStepImageSet
+					 where imageQ.SdkMessageProcessingStepImageId == Id
+					 select new
+							{
+								id = imageQ.SdkMessageProcessingStepImageId.Value,
+								name = imageQ.Name,
+								entityAlias = imageQ.EntityAlias,
+								attributes = imageQ.Attributes1,
+								imageType = imageQ.ImageType.Value,
+							}).ToList();
+
+				if (!result.Any())
+				{
+					AttributesSelectedString = null;
+					return;
+				}
+
+				var image = result.First();
+
+				Name = image.name;
+				EntityAlias = image.entityAlias;
+				IsPreImage = image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.PreImage
+					|| image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.Both;
+				IsPostImage = image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.PostImage
+					|| image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.Both;
+				AttributesSelectedString = image.attributes;
 			}
-
-			var image = result.First();
-
-			Name = image.name;
-			EntityAlias = image.entityAlias;
-			IsPreImage = image.imageType == (int) SdkMessageProcessingStepImage.Enums.ImageType.PreImage
-			             || image.imageType == (int) SdkMessageProcessingStepImage.Enums.ImageType.Both;
-			IsPostImage = image.imageType == (int) SdkMessageProcessingStepImage.Enums.ImageType.PostImage
-			              || image.imageType == (int) SdkMessageProcessingStepImage.Enums.ImageType.Both;
-			AttributesSelectedString = image.attributes;
 		}
 	}
 }
