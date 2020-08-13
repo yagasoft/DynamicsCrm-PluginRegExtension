@@ -18,13 +18,15 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Guide
 
-+ Right-click plugin project and choose 'register' or 'update'
++ Right-click a plugin project and choose 'register' or 'update'
 
 ## Changes
 
 #### _v2.1.2 (2020-08-13)_
 + Updated: SDK to match other tools to avoid conflicts
++ Updated: Controls library
 + Improved: connection pooling
++ Fixed: issues
 #### _v2.1.1 (2020-08-10)_
 + Added: filtering
 + Changed: switched to explicit Connection Strings to allow for a broader support of newer features

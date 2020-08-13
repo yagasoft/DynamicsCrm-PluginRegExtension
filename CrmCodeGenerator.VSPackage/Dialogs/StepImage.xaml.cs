@@ -1,5 +1,6 @@
 ﻿#region Imports
 
+using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -7,6 +8,7 @@ using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Model;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.Xrm.Sdk;
+using Yagasoft.Libraries.Common;
 
 #endregion
 
@@ -52,6 +54,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
+			if (CrmImage.Name.IsEmpty() || CrmImage.EntityAlias.IsEmpty())
+			{
+				PopException(new Exception("Name and Entity Alias must be filled."));
+				return;
+			}
+
 			IsUpdate = true;
 			Dispatcher.InvokeAsync(Close);
 		}
@@ -70,5 +78,17 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			base.OnKeyDown(e);
 		}
+
+		private void PopException(Exception exception)
+		{
+			Dispatcher.Invoke(
+				() =>
+				{
+					var message = exception.Message
+						+ (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
+					MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
+				});
+		}
+
 	}
 }
