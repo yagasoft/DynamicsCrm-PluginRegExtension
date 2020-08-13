@@ -33,7 +33,8 @@ namespace CrmPluginRegExt.VSPackage
 	/// </summary>
 	internal class AssemblyRegistration : INotifyPropertyChanged
 	{
-		public string ConnectionString;
+		public Settings Settings;
+		private string ConnectionString => Settings.ConnectionString;
 
 		#region Properties
 
@@ -130,9 +131,9 @@ namespace CrmPluginRegExt.VSPackage
 		public AssemblyRegistration()
 		{ }
 
-		public AssemblyRegistration(string connectionString)
+		public AssemblyRegistration(Settings settings)
 		{
-			ConnectionString = connectionString;
+			Settings = settings;
 		}
 
 		#region Assembly actions
@@ -377,7 +378,7 @@ namespace CrmPluginRegExt.VSPackage
 								 service.Create(newType);
 							 }
 
-							 //using (var service = GetConnection(ConnectionString)) { var id = service.Create(newType);
+							 //using (var service = GetConnection(connectionString)) { var id = service.Create(newType);
 
 							 UpdateStatus($"Finished adding plugin '{className}'.", -1);
 						 });
@@ -408,7 +409,7 @@ namespace CrmPluginRegExt.VSPackage
 								 service.Create(newType);
 							 }
 
-							 //using (var service = GetConnection(ConnectionString)) { var id = service.Create(newType);
+							 //using (var service = GetConnection(connectionString)) { var id = service.Create(newType);
 
 							 UpdateStatus($"Finished adding custom step '{className}'.", -1);
 						 });
@@ -586,7 +587,7 @@ namespace CrmPluginRegExt.VSPackage
 						secureId);
 			}
 
-			//using (var service = GetConnection(ConnectionString)) { var id = service.Create(newStep);
+			//using (var service = GetConnection(connectionString)) { var id = service.Create(newStep);
 
 			UpdateStatus("Saving new step to CRM ... ");
 
@@ -776,7 +777,7 @@ namespace CrmPluginRegExt.VSPackage
 								   SdkMessageProcessingStep.EntityLogicalName, image.Step.Id)
 						   };
 
-			//using (var service = GetConnection(ConnectionString)) { var id = service.Create(newImage);
+			//using (var service = GetConnection(connectionString)) { var id = service.Create(newImage);
 
 			UpdateStatus("Saving new image to CRM ... ");
 

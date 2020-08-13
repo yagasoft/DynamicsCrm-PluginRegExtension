@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -15,6 +16,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
@@ -35,22 +37,9 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	/// </summary>
 	public partial class Login : INotifyPropertyChanged
 	{
-		#region Hide close button stuff
-
-		private const int GWL_STYLE = -16;
-		private const int WS_SYSMENU = 0x80000;
-
-		[DllImport("user32.dll", SetLastError = true)]
-		private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-		[DllImport("user32.dll")]
-		private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-		#endregion
-
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v2.1.1";
+		private const string WindowTitle = "Plugin Registration Extension v2.1.2";
 
 		private Settings settings;
 		private readonly SettingsArray settingsArray;
@@ -62,7 +51,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsSandbox
 		{
-			get { return isSandbox; }
+			get => isSandbox;
 			set
 			{
 				isSandbox = value;
@@ -74,7 +63,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPluginTypeStepsEnabled
 		{
-			get { return isPluginTypeStepsEnabled; }
+			get => isPluginTypeStepsEnabled;
 			set
 			{
 				isPluginTypeStepsEnabled = value;
@@ -86,7 +75,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsTypeStepSelected
 		{
-			get { return isTypeStepSelected; }
+			get => isTypeStepSelected;
 			set
 			{
 				isTypeStepSelected = value;
@@ -98,7 +87,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsStepImageSelected
 		{
-			get { return isStepImageSelected; }
+			get => isStepImageSelected;
 			set
 			{
 				isStepImageSelected = value;
@@ -110,7 +99,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsAddImageAllowed
 		{
-			get { return isAddImageAllowed; }
+			get => isAddImageAllowed;
 			set
 			{
 				isAddImageAllowed = value;
@@ -122,7 +111,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private bool IsRegistered
 		{
-			get { return isRegistered; }
+			get => isRegistered;
 			set
 			{
 				isRegistered = value;
@@ -192,10 +181,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void Window_Loaded(object sender, RoutedEventArgs e)
 		{
-			// hide close button
-			var hwnd = new WindowInteropHelper(this).Handle;
-			SetWindowLong(hwnd, GWL_STYLE, GetWindowLong(hwnd, GWL_STYLE) & ~WS_SYSMENU);
-
 			Title = $"{DteHelper.CurrentProject.Name} - {WindowTitle}";
 			SetUiContext();
 		}
@@ -227,7 +212,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			settingsArray.SelectedSettingsIndex = Math.Max(0, settingsArray.SelectedSettingsIndex);
 
 			settings = settingsArray.GetSelectedSettings();
-			assemblyRegistration.ConnectionString = settings.ConnectionString;
+			assemblyRegistration.Settings = settings;
 			crmAssembly.Id = assemblyRegistration.Id = Guid.Empty;
 
 			// data contexts for UI controls
@@ -286,7 +271,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		protected override void OnSourceInitialized(EventArgs e)
 		{
 			base.OnSourceInitialized(e);
-			this.HideMinimizeAndMaximizeButtons();
+			this.HideCloseButton();
+			this.HideMinimizeButton();
 		}
 
 		private void Cancel_Click(object sender, RoutedEventArgs e)
@@ -659,11 +645,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			           {
 				           TypeStep dialogue = null;
 
-						   Dispatcher.Invoke(() =>
-				                             {
-												 dialogue = new TypeStep(newStep, settings.ConnectionString);
-					                             dialogue.ShowDialog();
-				                             });
+						   Dispatcher.Invoke(
+							   () =>
+							   {
+								   dialogue = new TypeStep(newStep, settings.ConnectionString);
+								   dialogue.ShowDialog();
+							   });
 
 				           try
 				           {
@@ -1128,6 +1115,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		#endregion
 
+		#region Filtering
+
 		private enum FilterControl
 		{
 			Type,
@@ -1208,6 +1197,14 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						Dispatcher.InvokeAsync(Close);
 					}
 				}).Start();
+		}
+
+		#endregion
+
+		private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+		{
+			Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri));
+			e.Handled = true;
 		}
 
 		#endregion

@@ -27,14 +27,20 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	public class ConnectionHelper
     {
+		private static readonly object lockObj = new object();
 		private static readonly IDictionary<string, EnhancedServicePool<EnhancedOrgService>> poolCache
 			= new Dictionary<string, EnhancedServicePool<EnhancedOrgService>>();
 
 		internal static void ResetCache(string connectionString)
 		{
 			Status.Update($"Clearing cache ... ");
-			poolCache.TryGetValue(connectionString, out var pool);
-			pool?.ClearFactoryCache();
+
+			lock (lockObj)
+			{
+				poolCache.TryGetValue(connectionString, out var pool);
+				pool?.ClearFactoryCache();
+			}
+
 			Status.Update($"Finished clearing cache.");
 		}
 
@@ -44,19 +50,29 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			{
 				ResetCache(connectionString);
 			}
-			
-			poolCache.TryGetValue(connectionString, out var pool);
 
-			if (pool == null)
+			EnhancedServicePool<EnhancedOrgService> pool;
+
+			lock (lockObj)
 			{
-				Status.Update($"Creating connection pool to CRM ... ");
-				Status.Update($"Connection String:"
-					+ $" '{Regex.Replace(connectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}'.");
+				poolCache.TryGetValue(connectionString, out pool);
 
-				poolCache[connectionString] = pool = EnhancedServiceHelper
-					.GetPool(new EnhancedServiceParams(connectionString) { CachingParams = new CachingParams() });
+				if (pool == null)
+				{
+					Status.Update($"Creating connection pool to CRM ... ");
+					Status.Update($"Connection String:"
+						+ $" '{Regex.Replace(connectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}'.");
 
-				Status.Update($"Created connection pool.");
+					poolCache[connectionString] = pool = EnhancedServiceHelper
+						.GetPool(
+							new EnhancedServiceParams(connectionString)
+							{
+								CachingParams = new CachingParams(),
+								PoolParams = new PoolParams { PoolSize = 10 }
+							});
+
+					Status.Update($"Created connection pool.");
+				} 
 			}
 
 			var service = pool.GetService();

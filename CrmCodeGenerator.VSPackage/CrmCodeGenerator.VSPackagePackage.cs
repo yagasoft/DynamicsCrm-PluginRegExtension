@@ -251,7 +251,7 @@ namespace CrmPluginRegExt.VSPackage
 			}
 			else
 			{
-				var registration = new AssemblyRegistration(settings.ConnectionString);
+				var registration = new AssemblyRegistration(settings);
 
 				registration.PropertyChanged +=
 					(o, args) =>
