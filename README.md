@@ -18,6 +18,7 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Guide
 
++ Install the Visual Studio extension ([here](https://marketplace.visualstudio.com/items?itemName=Yagasoft.CrmPluginRegExt))
 + Right-click a plugin project and choose 'register' or 'update'
 
 ## Changes
