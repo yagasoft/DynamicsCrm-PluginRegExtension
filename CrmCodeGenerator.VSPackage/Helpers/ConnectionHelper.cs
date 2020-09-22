@@ -16,20 +16,22 @@ using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Client.Caching;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
+using Yagasoft.Libraries.Common;
 using Yagasoft.Libraries.EnhancedOrgService.Builders;
 using Yagasoft.Libraries.EnhancedOrgService.Factories;
 using Yagasoft.Libraries.EnhancedOrgService.Helpers;
 using Yagasoft.Libraries.EnhancedOrgService.Params;
 using Yagasoft.Libraries.EnhancedOrgService.Pools;
 using Yagasoft.Libraries.EnhancedOrgService.Services;
+using Yagasoft.Libraries.EnhancedOrgService.Services.Enhanced;
+using CrmHelpers = Yagasoft.Libraries.Common.CrmHelpers;
 
 namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	public class ConnectionHelper
     {
 		private static readonly object lockObj = new object();
-		private static readonly IDictionary<string, EnhancedServicePool<EnhancedOrgService>> poolCache
-			= new Dictionary<string, EnhancedServicePool<EnhancedOrgService>>();
+		private const string ConnCacheMemKey = "ys_CrmPluginExt_Conn_846194";
 
 		internal static void ResetCache(string connectionString)
 		{
@@ -37,8 +39,8 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			lock (lockObj)
 			{
-				poolCache.TryGetValue(connectionString, out var pool);
-				pool?.ClearFactoryCache();
+				CacheHelpers.GetFromMemCache<EnhancedServicePool<EnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}")
+					?.ClearFactoryCache();
 			}
 
 			Status.Update($"Finished clearing cache.");
@@ -55,21 +57,21 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			lock (lockObj)
 			{
-				poolCache.TryGetValue(connectionString, out pool);
+				pool = CacheHelpers.GetFromMemCache<EnhancedServicePool<EnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}");
 
 				if (pool == null)
 				{
 					Status.Update($"Creating connection pool to CRM ... ");
-					Status.Update($"Connection String:"
-						+ $" '{Regex.Replace(connectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}'.");
+					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
 
-					poolCache[connectionString] = pool = EnhancedServiceHelper
-						.GetPool(
-							new EnhancedServiceParams(connectionString)
-							{
-								CachingParams = new CachingParams(),
-								PoolParams = new PoolParams { PoolSize = 10 }
-							});
+					pool = CacheHelpers.GetFromMemCacheAdd($"{ConnCacheMemKey}_{connectionString}",
+						() => EnhancedServiceHelper
+							.GetPool(
+								new EnhancedServiceParams(connectionString)
+								{
+									CachingParams = new CachingParams(),
+									PoolParams = new PoolParams { PoolSize = 10 }
+								}));
 
 					Status.Update($"Created connection pool.");
 				} 

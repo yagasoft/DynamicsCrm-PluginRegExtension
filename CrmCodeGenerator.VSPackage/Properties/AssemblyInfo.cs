@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Resources;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Microsoft.VisualStudio.Shell;
 
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
@@ -10,9 +11,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("CrmPluginRegExt.VSPackage")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Ahmed el-Sawalhy (yagasoft.com)")]
+[assembly: AssemblyCompany("Ahmed Elsawalhy (yagasoft.com)")]
 [assembly: AssemblyProduct("CrmPluginRegExt.VSPackage")]
-[assembly: AssemblyCopyright("2015")]
+[assembly: AssemblyCopyright("Yagasoft 2020")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]   
 [assembly: ComVisible(false)]     
@@ -29,8 +30,30 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("2.1.5.0")]
+[assembly: AssemblyFileVersion("2.1.5.0")]
 
 
+[assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.Xrm.Sdk",
+	CodeBase = @"$PackageFolder$\Microsoft.Xrm.Sdk.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "9.0.0.0")]
 
+[assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.Xrm.Sdk.Deployment",
+	CodeBase = @"$PackageFolder$\Microsoft.Xrm.Sdk.Deployment.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "9.0.0.0")]
+
+[assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.Crm.Sdk.Proxy",
+	CodeBase = @"$PackageFolder$\Microsoft.Crm.Sdk.Proxy.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "9.0.0.0")]
+
+[assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.Xrm.Tooling.Connector",
+	CodeBase = @"$PackageFolder$\Microsoft.Xrm.Tooling.Connector.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "4.0.0.0")]
+
+[assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.IdentityModel.Clients.ActiveDirectory",
+	CodeBase = @"$PackageFolder$\Microsoft.IdentityModel.Clients.ActiveDirectory.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "3.19.8.16603")]
+
+[assembly: ProvideBindingRedirection(AssemblyName = "Newtonsoft.Json",
+	CodeBase = @"$PackageFolder$\Newtonsoft.Json.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "10.0.0.0")]
