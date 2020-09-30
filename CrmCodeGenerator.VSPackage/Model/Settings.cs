@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
 using Yagasoft.Libraries.Common;
 
 #endregion
@@ -13,6 +14,8 @@ namespace CrmPluginRegExt.VSPackage.Model
 {
 	public class Settings : INotifyPropertyChanged
 	{
+		public Guid? Id { get; set; }
+
 		#region Init
 
 		public Settings()
@@ -23,6 +26,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 		private void InitFields()
 		{
 			ConnectionString = ConnectionString ?? "";
+			Id = Id ?? Guid.NewGuid();
 		}
 
 		#endregion
@@ -66,17 +70,20 @@ namespace CrmPluginRegExt.VSPackage.Model
 			}
 		}
 
+		[JsonIgnore]
 		public string ConnectionString
 		{
 			get => connectionString;
 			set
 			{
-				var clauses = value?.Split(';').Select(e => e.Trim()).Where(e => e.Contains("=")).ToArray();
+				var clauses = value?.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+					.Select(e => e.Trim()).Where(e => e.Contains("=")).ToArray();
 
 				if (clauses?.Any() == true)
 				{
-					var subclauses = clauses?.Select(e => e.Split('=').Select(s => s.Trim())).ToArray();
-					var longestKeyLength = subclauses?.Select(e => e.FirstOrDefault()?.Length ?? 0).Max() ?? 0;
+					var subclauses = clauses.Select(e => e.Split(new[] { '=' }, 2, StringSplitOptions.RemoveEmptyEntries)
+						.Select(s => s.Trim())).ToArray();
+					var longestKeyLength = subclauses.Select(e => e.FirstOrDefault()?.Length ?? 0).Max();
 					clauses = subclauses?
 						.Select(e => e.StringAggregate(" = ".PadLeft(longestKeyLength + 3 - e.FirstOrDefault()?.Length ?? 0)))
 						.ToArray();
@@ -85,7 +92,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 				var formattedString = clauses.StringAggregate(";\r\n").Trim();
 
 				SetField(ref connectionString, formattedString);
-				OnPropertyChanged("ConnectionString");
+				OnPropertyChanged();
 			}
 		}
 	}

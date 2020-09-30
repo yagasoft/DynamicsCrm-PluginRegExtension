@@ -62,6 +62,11 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			}
 		}
 
+		public static string GetPath(this Project project)
+		{
+			return System.IO.Path.GetDirectoryName(project.FullName);
+		}
+
 		public static ProjectItem GetProjectItem(this Project project, string projectFile)
 		{
 			return GetProjectItemRecursive(project.ProjectItems, projectFile);

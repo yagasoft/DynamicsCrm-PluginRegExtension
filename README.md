@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension](https://badges.gitter.im/yagasoft/DynamicsCrm-PluginRegExtension.svg)](https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-### Version: 2.1.5
+### Version: 2.1.6
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
@@ -23,6 +23,9 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Changes
 
+#### _v2.1.6 (2020-10-01)_
++ Improved: separated the connection save file to facilitate excluding from source control
++ Fixed: connection string values containing '=' character causing connectivity issue (e.g. client secrets containing '=')
 #### _v2.1.5 (2020-09-15)_
 + Improved: connection caching
 #### _v2.1.4 (2020-08-28)_

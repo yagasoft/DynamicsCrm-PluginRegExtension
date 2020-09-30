@@ -33,6 +33,16 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		private static readonly object lockObj = new object();
 		private const string ConnCacheMemKey = "ys_CrmPluginExt_Conn_846194";
 
+		public static string SecureConnectionString(string connectionString)
+		{
+			return Regex
+				.Replace(Regex
+					.Replace(connectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;")
+					.Replace("\r\n", " "),
+					@"\s+", " ")
+				.Replace(" = ", "=");
+		}
+
 		internal static void ResetCache(string connectionString)
 		{
 			Status.Update($"Clearing cache ... ");
