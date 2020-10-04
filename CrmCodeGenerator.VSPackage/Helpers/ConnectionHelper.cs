@@ -49,7 +49,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			lock (lockObj)
 			{
-				CacheHelpers.GetFromMemCache<EnhancedServicePool<EnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}")
+				CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}")
 					?.ClearFactoryCache();
 			}
 
@@ -63,11 +63,11 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 				ResetCache(connectionString);
 			}
 
-			EnhancedServicePool<EnhancedOrgService> pool;
+			IEnhancedServicePool<IEnhancedOrgService> pool;
 
 			lock (lockObj)
 			{
-				pool = CacheHelpers.GetFromMemCache<EnhancedServicePool<EnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}");
+				pool = CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}");
 
 				if (pool == null)
 				{
@@ -75,13 +75,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
 
 					pool = CacheHelpers.GetFromMemCacheAdd($"{ConnCacheMemKey}_{connectionString}",
-						() => EnhancedServiceHelper
-							.GetPool(
-								new EnhancedServiceParams(connectionString)
-								{
-									CachingParams = new CachingParams(),
-									PoolParams = new PoolParams { PoolSize = 10 }
-								}));
+						() => EnhancedServiceHelper.GetPoolCaching(connectionString, 10));
 
 					Status.Update($"Created connection pool.");
 				} 

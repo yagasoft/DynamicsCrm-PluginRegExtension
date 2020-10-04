@@ -105,8 +105,7 @@ namespace CrmPluginRegExt.VSPackage
 		{
 			Status.Update("Writing settings ... ");
 
-			var dte = (DTE)Package.GetGlobalService(typeof(SDTE));
-			var file = $@"{dte.Solution.GetPath()}\{FileName}";
+			var file = $@"{BuildBaseFileName()}-Config.json";
 
 			if (!File.Exists(file))
 			{
