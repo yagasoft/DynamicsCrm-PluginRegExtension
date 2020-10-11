@@ -39,7 +39,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v2.1.7";
+		private const string WindowTitle = "Plugin Registration Extension v2.1.8";
 
 		private Settings settings;
 		private readonly SettingsArray settingsArray;
@@ -1079,6 +1079,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void ButtonDuplicateSettings_Click(object sender, RoutedEventArgs e)
 		{
 			var newSettings = settingsArray.GetSelectedSettings().Copy();
+			newSettings.Id = Guid.NewGuid();
 			settingsArray.SettingsList.Add(newSettings);
 			settingsArray.SelectedSettingsIndex = settingsArray.SettingsList.IndexOf(newSettings);
 
