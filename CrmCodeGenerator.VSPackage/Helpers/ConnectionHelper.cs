@@ -63,27 +63,37 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 				ResetCache(connectionString);
 			}
 
-			IEnhancedServicePool<IEnhancedOrgService> pool;
+			var memKey = $"{ConnCacheMemKey}_{connectionString}";
 
-			lock (lockObj)
+			try
 			{
-				pool = CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}");
+				IEnhancedServicePool<IEnhancedOrgService> pool;
 
-				if (pool == null)
+				lock (lockObj)
 				{
-					Status.Update($"Creating connection pool to CRM ... ");
-					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
+					pool = CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>(memKey);
 
-					pool = CacheHelpers.GetFromMemCacheAdd($"{ConnCacheMemKey}_{connectionString}",
-						() => EnhancedServiceHelper.GetPoolCaching(connectionString, 10));
+					if (pool == null)
+					{
+						Status.Update($"Creating connection pool to CRM ... ");
+						Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
 
-					Status.Update($"Created connection pool.");
-				} 
+						pool = CacheHelpers.GetFromMemCacheAdd(memKey,
+							() => EnhancedServiceHelper.GetPoolCaching(connectionString, 10));
+
+						Status.Update($"Created connection pool.");
+					}
+				}
+
+				var service = pool.GetService();
+
+				return service;
 			}
-
-			var service = pool.GetService();
-
-			return service;
+			catch
+			{
+				CacheHelpers.RemoveFromMemCache(memKey);
+				throw;
+			}
 		}
 	}
 }
