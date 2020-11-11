@@ -39,7 +39,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v2.1.9";
+		private const string WindowTitle = "Plugin Registration Extension v2.2.1";
 
 		private Settings settings;
 		private readonly SettingsArray settingsArray;

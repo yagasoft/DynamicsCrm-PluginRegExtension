@@ -508,7 +508,10 @@ namespace CrmPluginRegExt.VSPackage
 			if (nonExistentTypes.Any())
 			{
 				if (DteHelper.IsConfirmed("Please confirm that you want to DELETE non-existent types in this assembly." +
-					" This means that all its steps will be deleted!", "Type deletion"))
+					" This means that all its steps will be deleted.\r\n\r\n"
+					+ "Non-existent plugins:\r\n"
+					+ nonExistentTypes.Select(t => $"-{t.TypeName}").Aggregate((s1, s2) => s1 + "\r\n" + s2),
+					"Type deletion"))
 				{
 					UpdateStatus("Deleting non-existent types ... ", 1);
 
