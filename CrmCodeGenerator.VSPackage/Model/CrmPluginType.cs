@@ -26,8 +26,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 				return;
 			}
 
-			using (var service = GetConnection(connectionString))
-			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
 			{
 				var result =
 					(from type in context.PluginTypeSet

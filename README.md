@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension](https://badges.gitter.im/yagasoft/DynamicsCrm-PluginRegExtension.svg)](https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-### Version: 2.2.1
+### Version: 2.2.2
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
@@ -23,6 +23,10 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Changes
 
+#### _v2.2.2 (2020-11-22)_
++ Improved: stability of initiating connections
++ Improved: speed of refreshing types
++ Updated: SDK to match other tools to avoid conflicts
 #### _v2.2.1 (2020-11-11)_
 + Added: list of non-existent plugin types to the popup message
 #### _v2.1.9 (2020-10-14)_

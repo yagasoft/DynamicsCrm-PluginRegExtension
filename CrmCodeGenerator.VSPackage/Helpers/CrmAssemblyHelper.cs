@@ -23,8 +23,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			PluginAssembly assembly;
 
-			using (var service = GetConnection(connectionString))
-			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
 			{
 				assembly =
 					(from assemblyQ in context.PluginAssemblySet
@@ -100,8 +99,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			List<PluginType> types;
 
-			using (var service = GetConnection(connectionString))
-			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
 			{
 				types =
 					(from type in context.PluginTypeSet

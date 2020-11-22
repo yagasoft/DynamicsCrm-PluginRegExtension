@@ -81,8 +81,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 							   }
 						   };
 
-				using (var service = GetConnection(connectionString))
-				using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+					using (var context = new XrmServiceContext(GetConnection(connectionString)) { MergeOption = MergeOption.NoTracking })
 				{
 					UserList.AddRange(
 						(from user in context.SystemUserSet
@@ -149,15 +148,9 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 														 ClientVersionStamp = null
 													 };
 
-				List<string> attributeNames;
-
-				using (var service = GetConnection(connectionString))
-				{
-					attributeNames =
-						((RetrieveMetadataChangesResponse)service.Execute(retrieveMetadataChangesRequest))
-							.EntityMetadata.First().Attributes
-							.Select(attribute => attribute.LogicalName).OrderBy(name => name).ToList();
-				}
+				var attributeNames = ((RetrieveMetadataChangesResponse)GetConnection(connectionString).Execute(retrieveMetadataChangesRequest))
+					.EntityMetadata.First().Attributes
+					.Select(attribute => attribute.LogicalName).OrderBy(name => name).ToList();
 
 				AttributeList[entityName] = attributeNames;
 			}
@@ -167,8 +160,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 		private static void RefreshMessageCache(string connectionString)
 		{
-			using (var service = GetConnection(connectionString))
-			using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+			using (var context = new XrmServiceContext(GetConnection(connectionString)) { MergeOption = MergeOption.NoTracking })
 			{
 				MessageList =
 					(from message in context.SdkMessageSet

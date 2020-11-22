@@ -176,8 +176,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		protected override void RunUpdateLogic(string connectionString)
 		{
-			using (var service = GetConnection(connectionString))
-			using (var context = new XrmServiceContext(service) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
 			{
 				var result =
 					(from imageQ in context.SdkMessageProcessingStepImageSet

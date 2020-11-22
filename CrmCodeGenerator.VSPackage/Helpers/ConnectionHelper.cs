@@ -17,7 +17,6 @@ using Microsoft.Xrm.Client.Caching;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.Libraries.Common;
-using Yagasoft.Libraries.EnhancedOrgService.Builders;
 using Yagasoft.Libraries.EnhancedOrgService.Factories;
 using Yagasoft.Libraries.EnhancedOrgService.Helpers;
 using Yagasoft.Libraries.EnhancedOrgService.Params;
@@ -65,35 +64,33 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			var memKey = $"{ConnCacheMemKey}_{connectionString}";
 
-			try
+			lock (lockObj)
 			{
-				IEnhancedServicePool<IEnhancedOrgService> pool;
-
-				lock (lockObj)
+				try
 				{
-					pool = CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>(memKey);
+					var service = CacheHelpers.GetFromMemCache<IEnhancedOrgService>(memKey);
 
-					if (pool == null)
+					if (service != null)
 					{
-						Status.Update($"Creating connection pool to CRM ... ");
-						Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
-
-						pool = CacheHelpers.GetFromMemCacheAdd(memKey,
-							() => EnhancedServiceHelper.GetPoolCaching(connectionString, 10));
-
-						Status.Update($"Created connection pool.");
+						return service;
 					}
+
+					Status.Update($"Creating connection to CRM ... ");
+					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
+
+					service = EnhancedServiceHelper.GetPoolCaching(connectionString, 1).GetService(5);
+					CacheHelpers.AddToMemCache(memKey, service);
+						
+					Status.Update($"Created connection.");
+
+					return service;
 				}
-
-				var service = pool.GetService();
-
-				return service;
-			}
-			catch
-			{
-				CacheHelpers.RemoveFromMemCache(memKey);
-				throw;
+				catch
+				{
+					CacheHelpers.RemoveFromMemCache(memKey);
+					throw;
+				}
 			}
 		}
-	}
+    }
 }

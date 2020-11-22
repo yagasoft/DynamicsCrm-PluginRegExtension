@@ -7,6 +7,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
 using CrmPluginRegExt.VSPackage.Model;
@@ -259,10 +260,7 @@ namespace CrmPluginRegExt.VSPackage
 
 			UpdateStatus("Saving new assembly to CRM ...");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				Id = service.Create(assembly);
-			}
+			Id = GetConnection(ConnectionString).Create(assembly);
 
 			AddNewTypes(GetExistingTypeNames());
 
@@ -318,10 +316,7 @@ namespace CrmPluginRegExt.VSPackage
 
 			UpdateStatus("Updating assembly ... ");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				service.Update(updatedAssembly);
-			}
+			GetConnection(ConnectionString).Update(updatedAssembly);
 
 			var existingTypeNames = GetExistingTypeNames();
 
@@ -373,12 +368,7 @@ namespace CrmPluginRegExt.VSPackage
 												   new EntityReference(PluginAssembly.EntityLogicalName, Id)
 										   };
 
-							 using (var service = GetConnection(ConnectionString))
-							 {
-								 service.Create(newType);
-							 }
-
-							 //using (var service = GetConnection(connectionString)) { var id = service.Create(newType);
+							 GetConnection(ConnectionString).Create(newType);
 
 							 UpdateStatus($"Finished adding plugin '{className}'.", -1);
 						 });
@@ -404,12 +394,7 @@ namespace CrmPluginRegExt.VSPackage
 													   DteHelper.GetProjectName(), AssemblyHelper.GetAssemblyVersion())
 										   };
 
-							 using (var service = GetConnection(ConnectionString))
-							 {
-								 service.Create(newType);
-							 }
-
-							 //using (var service = GetConnection(connectionString)) { var id = service.Create(newType);
+							 GetConnection(ConnectionString).Create(newType);
 
 							 UpdateStatus($"Finished adding custom step '{className}'.", -1);
 						 });
@@ -428,69 +413,56 @@ namespace CrmPluginRegExt.VSPackage
 		{
 			var wfClasses = AssemblyHelper.GetClasses<CodeActivity>();
 
-			if (wfClasses.Any())
+			if (!wfClasses.Any())
 			{
-				UpdateStatus("Refreshing custom steps ... ", 1);
-
-				// create new types
-				wfClasses.Where(existingTypeNames.Contains).ToList()
-					.ForEach(pluginType =>
-							 {
-								 var className = pluginType.Split('.')[pluginType.Split('.').Length - 1];
-
-								 UpdateStatus($"Refreshing '{className}' ... ", 1);
-
-								 Guid? typeId;
-
-								 using (var service = GetConnection(ConnectionString))
-								 using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
-								 {
-									 typeId =
-										 (from typeQ in context.PluginTypeSet
-										  where typeQ.TypeName == pluginType
-										  select typeQ.PluginTypeId).First();
-								 }
-
-								 if (typeId == null)
-								 {
-									 throw new Exception("Failed to get plugin type ID.");
-								 }
-
-								 //var updatedType = Context.PluginTypeSet.FirstOrDefault(entity => entity.PluginTypeId == typeId)
-								 //				   ?? new PluginType();
-
-								 var updatedType =
-									 new PluginType
-									 {
-										 PluginTypeId = typeId,
-										 Name = pluginType,
-										 TypeName = pluginType,
-										 FriendlyName = className,
-										 PluginAssemblyId = new EntityReference(PluginAssembly.EntityLogicalName, Id),
-										 WorkflowActivityGroupName = string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
-											 DteHelper.GetProjectName(), AssemblyHelper.GetAssemblyVersion())
-									 };
-
-								 //if (updatedType.Id == Guid.Empty)
-								 //{
-								 // updatedType.Id = typeId.Value;
-								 //}
-
-								 //Context.ConfirmAttached(updatedType);
-								 //Context.UpdateObject(updatedType);
-
-								 UpdateStatus($"Refreshing type '{updatedType.Id}' ... ");
-
-								 using (var service = GetConnection(ConnectionString))
-								 {
-									 service.Update(updatedType);
-								 }
-
-								 UpdateStatus($"Finished refreshing '{className}'.", -1);
-							 });
-
-				UpdateStatus("Finished refreshing custom steps.", -1);
+				return;
 			}
+
+			UpdateStatus("Refreshing custom steps ... ", 1);
+
+			// create new types
+			Parallel.ForEach(wfClasses.Where(existingTypeNames.Contains), new ParallelOptions { MaxDegreeOfParallelism = 5 },
+				pluginType =>
+				{
+					var className = pluginType.Split('.')[pluginType.Split('.').Length - 1];
+
+					UpdateStatus($"Refreshing '{className}' ... ");
+
+					Guid? typeId;
+
+					using (var context = new XrmServiceContext(GetConnection(ConnectionString)) { MergeOption = MergeOption.NoTracking })
+					{
+						typeId =
+							(from typeQ in context.PluginTypeSet
+							 where typeQ.TypeName == pluginType
+							 select typeQ.PluginTypeId).First();
+					}
+
+					if (typeId == null)
+					{
+						throw new Exception("Failed to get plugin type ID.");
+					}
+
+					var updatedType =
+						new PluginType
+						{
+							PluginTypeId = typeId,
+							Name = pluginType,
+							TypeName = pluginType,
+							FriendlyName = className,
+							PluginAssemblyId = new EntityReference(PluginAssembly.EntityLogicalName, Id),
+							WorkflowActivityGroupName = string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
+								DteHelper.GetProjectName(), AssemblyHelper.GetAssemblyVersion())
+						};
+
+					UpdateStatus($"Refreshing type '{updatedType.Id}' ... ");
+
+					GetConnection(ConnectionString).Update(updatedType);
+
+					UpdateStatus($"Finished refreshing '{className}'.");
+				});
+
+			UpdateStatus("Finished refreshing custom steps.", -1);
 		}
 
 		private void DeleteObsoleteTypes()
@@ -539,8 +511,7 @@ namespace CrmPluginRegExt.VSPackage
 
 			if (!string.IsNullOrEmpty(step.SecureConfig))
 			{
-				using (var service = GetConnection(ConnectionString))
-				using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+				using (var context = new XrmServiceContext(GetConnection(ConnectionString)) { MergeOption = MergeOption.NoTracking })
 				{
 					secureId = step.SecureId =
 						((CreateResponse)context.Execute(
@@ -590,17 +561,9 @@ namespace CrmPluginRegExt.VSPackage
 						secureId);
 			}
 
-			//using (var service = GetConnection(connectionString)) { var id = service.Create(newStep);
-
 			UpdateStatus("Saving new step to CRM ... ");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				step.Id = service.Create(newStep);
-			}
-
-			//Context.SaveChanges();
-			//step.Id = newStep.Id;
+			step.Id = GetConnection(ConnectionString).Create(newStep);
 
 			UpdateStatus($"Finished creating step '{step.Name}'.", -1);
 		}
@@ -660,8 +623,7 @@ namespace CrmPluginRegExt.VSPackage
 			{
 				if (secureId == Guid.Empty)
 				{
-					using (var service = GetConnection(ConnectionString))
-					using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
+					using (var context = new XrmServiceContext(GetConnection(ConnectionString)) { MergeOption = MergeOption.NoTracking })
 					{
 						secureId = step.SecureId =
 							((CreateResponse)context.Execute(
@@ -694,10 +656,7 @@ namespace CrmPluginRegExt.VSPackage
 
 					UpdateStatus("Updated secure config ... ");
 
-					using (var service = GetConnection(ConnectionString))
-					{
-						service.Update(updatedSecure);
-					}
+					GetConnection(ConnectionString).Update(updatedSecure);
 				}
 			}
 
@@ -716,10 +675,7 @@ namespace CrmPluginRegExt.VSPackage
 			//Context.UpdateObject(updatedStep);
 			UpdateStatus("Updated step ... ");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				service.Update(updatedStep);
-			}
+			GetConnection(ConnectionString).Update(updatedStep);
 
 			//UpdateStatus("Saving updated step to CRM ... ");
 			//Context.SaveChanges();
@@ -744,19 +700,16 @@ namespace CrmPluginRegExt.VSPackage
 
 			UpdateStatus($"Settings step state to '{toggledState}' ... ", 1);
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				service.Execute(
-					new SetStateRequest
-					{
-						EntityMoniker = new EntityReference(SdkMessageProcessingStep.EntityLogicalName, stepId),
-						State = toggledState.ToOptionSetValue(),
-						Status = (toggledState == SdkMessageProcessingStepState.Enabled
-							? SdkMessageProcessingStep.Enums.StatusCode.Enabled
-							: SdkMessageProcessingStep.Enums.StatusCode.Disabled)
-							.ToOptionSetValue()
-					});
-			}
+			GetConnection(ConnectionString).Execute(
+				new SetStateRequest
+				{
+					EntityMoniker = new EntityReference(SdkMessageProcessingStep.EntityLogicalName, stepId),
+					State = toggledState.ToOptionSetValue(),
+					Status = (toggledState == SdkMessageProcessingStepState.Enabled
+						? SdkMessageProcessingStep.Enums.StatusCode.Enabled
+						: SdkMessageProcessingStep.Enums.StatusCode.Disabled)
+						.ToOptionSetValue()
+				});
 
 			UpdateStatus("Finished setting step state. ID => " + stepId, -1);
 		}
@@ -780,17 +733,9 @@ namespace CrmPluginRegExt.VSPackage
 								   SdkMessageProcessingStep.EntityLogicalName, image.Step.Id)
 						   };
 
-			//using (var service = GetConnection(connectionString)) { var id = service.Create(newImage);
-
 			UpdateStatus("Saving new image to CRM ... ");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				image.Id = service.Create(newImage);
-			}
-
-			//Context.SaveChanges();
-			//image.Id = newImage.Id;
+			image.Id = GetConnection(ConnectionString).Create(newImage);
 
 			UpdateStatus($"Finished creating image '{image.Name}'.", -1);
 		}
@@ -814,10 +759,7 @@ namespace CrmPluginRegExt.VSPackage
 
 			UpdateStatus("Updating image ... ");
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				service.Update(updatedImage);
-			}
+			GetConnection(ConnectionString).Update(updatedImage);
 
 			UpdateStatus($"Finished updating image '{image.Name}'.", -1);
 		}
@@ -835,18 +777,13 @@ namespace CrmPluginRegExt.VSPackage
 
 		private void DeleteTree(Guid objectId, Dependency.Enums.RequiredComponentType type)
 		{
-			List<Entity> dependencies;
-
-			using (var service = GetConnection(ConnectionString))
-			{
-				dependencies = ((RetrieveDependenciesForDeleteResponse)
-					service.Execute(
-						new RetrieveDependenciesForDeleteRequest
-						{
-							ComponentType = (int)type,
-							ObjectId = objectId
-						})).EntityCollection.Entities.ToList();
-			}
+			var dependencies = ((RetrieveDependenciesForDeleteResponse)
+				GetConnection(ConnectionString).Execute(
+					new RetrieveDependenciesForDeleteRequest
+					{
+						ComponentType = (int)type,
+						ObjectId = objectId
+					})).EntityCollection.Entities.ToList();
 
 			string logicalname;
 
@@ -888,36 +825,11 @@ namespace CrmPluginRegExt.VSPackage
 					}
 				});
 
-			using (var service = GetConnection(ConnectionString))
-			{
-				service.Execute(
-					new DeleteRequest
-					{
-						Target = new EntityReference(logicalname, objectId)
-					});
-			}
-		}
-	}
-
-	public static class ContextExtensions
-	{
-		public static void ConfirmAttached(this XrmServiceContext context, Entity entity)
-		{
-			try
-			{
-				context.ReAttach(entity);
-			}
-			catch
-			{
-				try
+			GetConnection(ConnectionString).Execute(
+				new DeleteRequest
 				{
-					context.Attach(entity);
-				}
-				catch
-				{
-					// ignored
-				}
-			}
+					Target = new EntityReference(logicalname, objectId)
+				});
 		}
 	}
 }
