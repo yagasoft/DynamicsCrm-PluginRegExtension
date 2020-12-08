@@ -39,7 +39,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v2.2.2";
+		private const string WindowTitle = "Plugin Registration Extension v2.2.3";
 
 		private Settings settings;
 		private readonly SettingsArray settingsArray;
@@ -498,10 +498,18 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
+		private void ButtonClearCache_Click(object sender, RoutedEventArgs e)
+		{
+			Refresh(true);
+		}
+
 		private void ButtonRefresh_Click(object sender, RoutedEventArgs e)
 		{
-			var isClearCache = CheckBoxClearCache.IsChecked ?? false;
+			Refresh();
+		}
 
+		private void Refresh(bool isClearCache = false)
+		{
 			new Thread(
 				() =>
 				{
@@ -522,7 +530,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					}
 					finally
 					{
-						Dispatcher.Invoke(() => CheckBoxClearCache.IsChecked = false);
 						UpdateStatus("", false);
 					}
 				}).Start();

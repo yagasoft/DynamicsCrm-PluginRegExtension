@@ -158,13 +158,14 @@
                         <TextBlock x:Name="TextBlockIsRegistered" TextWrapping="NoWrap" FontWeight="Bold"
                                    Text="{Binding IsRegisteredString, Mode=OneWay}" />
                     </StackPanel>
-                    <CheckBox x:Name="CheckBoxClearCache" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"
-                              VerticalAlignment="Center" HorizontalAlignment="Right">
-                        Clear Cache
-                    </CheckBox>
-                    <Button Grid.Row="0" Grid.Column="3" x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
-                            Margin="1,0,0,1"
-                            CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonRefresh_Click" />
+                    <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button  x:Name="ButtonClearCache" Content="Clear Cache" BorderThickness="1"
+                                Margin="1,0,5,1" Width="80"
+                                CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonClearCache_Click" />
+                        <Button x:Name="ButtonRefresh" Content="Refresh" BorderThickness="1"
+                                Margin="1,0,0,1" Width="55"
+                                CommandParameter="{Binding ElementName=txtPassword}" Click="ButtonRefresh_Click" />
+                    </StackPanel>
                 </Grid>
             </Grid>
             <Grid Grid.Column="1" HorizontalAlignment="Stretch" Margin="10" VerticalAlignment="Stretch">

@@ -23,6 +23,7 @@ using Yagasoft.Libraries.EnhancedOrgService.Params;
 using Yagasoft.Libraries.EnhancedOrgService.Pools;
 using Yagasoft.Libraries.EnhancedOrgService.Services;
 using Yagasoft.Libraries.EnhancedOrgService.Services.Enhanced;
+using Yagasoft.Libraries.EnhancedOrgService.Services.Enhanced.Cache;
 using CrmHelpers = Yagasoft.Libraries.Common.CrmHelpers;
 
 namespace CrmPluginRegExt.VSPackage.Helpers
@@ -48,8 +49,8 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 			lock (lockObj)
 			{
-				CacheHelpers.GetFromMemCache<IEnhancedServicePool<IEnhancedOrgService>>($"{ConnCacheMemKey}_{connectionString}")
-					?.ClearFactoryCache();
+				CacheHelpers.GetFromMemCache<ICachingOrgService>($"{ConnCacheMemKey}_{connectionString}")?
+					.ClearCache();
 			}
 
 			Status.Update($"Finished clearing cache.");
@@ -78,7 +79,9 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					Status.Update($"Creating connection to CRM ... ");
 					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
 
-					service = EnhancedServiceHelper.GetPoolCaching(connectionString, 1).GetService(5);
+					service = EnhancedServiceHelper.GetPoolCaching(connectionString, 1,
+						new CachingParams { CacheScope = CacheScope.Service })
+						.GetService(5);
 					CacheHelpers.AddToMemCache(memKey, service);
 						
 					Status.Update($"Created connection.");
