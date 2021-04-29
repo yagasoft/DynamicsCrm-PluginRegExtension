@@ -1,6 +1,7 @@
 ﻿#region Imports
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using CrmPluginEntities;
@@ -37,7 +38,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 	{
 		public static List<ComboMessage> MessageList = new List<ComboMessage>();
 		public static List<ComboUser> UserList = new List<ComboUser>();
-		public static Dictionary<string, List<string>> AttributeList = new Dictionary<string, List<string>>();
+		public static IDictionary<string, List<string>> AttributeList = new ConcurrentDictionary<string, List<string>>();
 
 		internal static List<string> GetEntityNames(string connectionString, bool cached = true)
 		{

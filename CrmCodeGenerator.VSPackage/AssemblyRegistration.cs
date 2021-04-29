@@ -429,8 +429,10 @@ namespace CrmPluginRegExt.VSPackage
 					UpdateStatus($"Refreshing '{className}' ... ");
 
 					Guid? typeId;
-
-					using (var context = new XrmServiceContext(GetConnection(ConnectionString)) { MergeOption = MergeOption.NoTracking })
+					
+					var service = GetConnection(ConnectionString);
+					
+					using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
 					{
 						typeId =
 							(from typeQ in context.PluginTypeSet
@@ -457,7 +459,7 @@ namespace CrmPluginRegExt.VSPackage
 
 					UpdateStatus($"Refreshing type '{updatedType.Id}' ... ");
 
-					GetConnection(ConnectionString).Update(updatedType);
+					service.Update(updatedType);
 
 					UpdateStatus($"Finished refreshing '{className}'.");
 				});
