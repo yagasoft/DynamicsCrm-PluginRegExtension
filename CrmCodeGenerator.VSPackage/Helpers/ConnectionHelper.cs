@@ -79,11 +79,25 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 					Status.Update($"Creating connection to CRM ... ");
 					Status.Update($"Connection String:" + $" '{CrmHelpers.SecureConnectionString(connectionString)}'.");
 
-					service = EnhancedServiceHelper.GetPoolCaching(connectionString, 1,
-						new CachingParams { CacheScope = CacheScope.Service })
-						.GetService(5);
-					CacheHelpers.AddToMemCache(memKey, service);
-						
+					service = EnhancedServiceHelper.GetCachingPoolingService(
+						new ServiceParams
+						{
+							ConnectionParams =
+								new ConnectionParams
+								{
+									ConnectionString = connectionString
+								},
+							PoolParams =
+								new PoolParams
+								{
+									PoolSize = 5,
+									DequeueTimeout = TimeSpan.FromSeconds(20)
+								},
+							CachingParams = new CachingParams { CacheScope = CacheScope.Service },
+							OperationHistoryLimit = 1
+						});
+					CacheHelpers.AddToMemCache(memKey, service, DateTime.Now.AddYears(1));
+					
 					Status.Update($"Created connection.");
 
 					return service;

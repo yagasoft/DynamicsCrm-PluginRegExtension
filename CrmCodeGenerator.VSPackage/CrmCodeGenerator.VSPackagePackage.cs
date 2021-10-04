@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Dialogs;
@@ -18,6 +19,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Yagasoft.Libraries.Common;
+using Task = System.Threading.Tasks.Task;
 
 #endregion
 
@@ -34,17 +36,17 @@ namespace CrmPluginRegExt.VSPackage
 	/// </summary>
 	// This attribute tells the PkgDef creation utility (CreatePkgDef.exe) that this class is
 		// a package.
-		[PackageRegistration(UseManagedResourcesOnly = true)]
+		[PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
 		// This attribute is used to register the information needed to show this package
 		// in the Help/About dialog of Visual Studio.
 		[InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
 		//this causes the class to load when VS starts [ProvideAutoLoad("ADFC4E64-0397-11D1-9F4E-00A0C911004F")]
-		[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasSingleProject_string)]
-		[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasMultipleProjects_string)]
+		//[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasSingleProject_string)]
+		//[ProvideAutoLoad(VSConstants.UICONTEXT.SolutionHasMultipleProjects_string)]
 		// This attribute is needed to let the shell know that this package exposes some menus.
 		[ProvideMenuResource("Menus.ctmenu", 1)]
 		[Guid(GuidList.guidPluginRegExt_VSPackagePkgString)]
-	public sealed class CrmPluginRegExt_VSPackagePackage : Package, IVsSolutionEvents3
+	public sealed class CrmPluginRegExt_VSPackagePackage : AsyncPackage, IVsSolutionEvents3
 	{
 		/// <summary>
 		///     Default constructor of the package.
@@ -67,8 +69,10 @@ namespace CrmPluginRegExt.VSPackage
 		///     Initialization of the package; this method is called right after the package is sited, so this is the place
 		///     where you can put all the initialization code that rely on services provided by VisualStudio.
 		/// </summary>
-		protected override void Initialize()
+		protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
 		{
+			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
+
 			AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Sdk", new Version("9.0.0.0"), "31bf3856ad364e35");
 			AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Sdk.Deployment", new Version("9.0.0.0"), "31bf3856ad364e35");
 			AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Tooling.Connector", new Version("4.0.0.0"), "31bf3856ad364e35");
@@ -77,34 +81,76 @@ namespace CrmPluginRegExt.VSPackage
 			AssemblyHelpers.RedirectAssembly("Newtonsoft.Json", new Version("10.0.0.0"), "30ad4fe6b2a6aeed");
 			
 			Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", ToString()));
-			base.Initialize();
+			await base.InitializeAsync(cancellationToken, progress);
 
 			// Add our command handlers for menu (commands must exist in the .vsct file)
-			var mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-
-			if (null != mcs)
+			if (await GetServiceAsync(typeof (IMenuCommandService)) is OleMenuCommandService mcs)
 			{
 				var registerCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
 					(int)PkgCmdIDList.cmdidRegisterModifyPlugin);
-				var registerItem = new MenuCommand(RegisterModifyPluginCallback, registerCmd);
+				var registerItem = new MenuCommand(
+					async (o, e) =>
+						  {
+							  try
+							  {
+								  await RegisterModifyPluginCallbackAsync(o, e);
+							  }
+							  catch (Exception ex)
+							  {
+								  MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+							  }
+						  }, registerCmd);
 				mcs.AddCommand(registerItem);
 
 				var updateCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet, (int)PkgCmdIDList.cmdidUpdatePlugin);
-				var updateItem = new MenuCommand(UpdatePluginCallback, updateCmd);
+				var updateItem = new MenuCommand(
+					async (o, e) =>
+						  {
+							  try
+							  {
+								  await UpdatePluginCallbackAsync(o, e);
+							  }
+							  catch (Exception ex)
+							  {
+								  MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+							  }
+						  }, updateCmd);
 				mcs.AddCommand(updateItem);
 
 				var multiRegisterCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
 					(int)PkgCmdIDList.cmdidMultiRegisterModifyPlugin);
-				var multiRegisterItem = new MenuCommand(RegisterModifyPluginCallback, multiRegisterCmd);
+				var multiRegisterItem = new MenuCommand(
+					async (o, e) =>
+						  {
+							  try
+							  {
+								  await RegisterModifyPluginCallbackAsync(o, e);
+							  }
+							  catch (Exception ex)
+							  {
+								  MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+							  }
+						  }, multiRegisterCmd);
 				mcs.AddCommand(multiRegisterItem);
 
 				var multiUpdateCmd = new CommandID(GuidList.guidPluginRegExt_VSPackageCmdSet,
 					(int)PkgCmdIDList.cmdidMultiUpdatePlugin);
-				var multiUpdateItem = new MenuCommand(UpdatePluginCallback, multiUpdateCmd);
+				var multiUpdateItem = new MenuCommand(
+					async (o, e) =>
+						  {
+							  try
+							  {
+								  await UpdatePluginCallbackAsync(o, e);
+							  }
+							  catch (Exception ex)
+							  {
+								  MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+							  }
+						  }, multiUpdateCmd);
 				mcs.AddCommand(multiUpdateItem);
 			}
 
-			AdviseSolutionEvents();
+			await AdviseSolutionEventsAsync();
 		}
 
 		protected override void Dispose(bool disposing)
@@ -117,16 +163,24 @@ namespace CrmPluginRegExt.VSPackage
 		private IVsSolution solution = null;
 		private uint _handleCookie;
 
-		private void AdviseSolutionEvents()
+		private async Task AdviseSolutionEventsAsync()
 		{
+			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
+
 			UnadviseSolutionEvents();
 
-			solution = GetService(typeof(SVsSolution)) as IVsSolution;
-			solution?.AdviseSolutionEvents(this, out _handleCookie);
+			solution = await GetServiceAsync(typeof (SVsSolution)) as IVsSolution;
+
+			if (solution != null)
+			{
+				solution.AdviseSolutionEvents(this, out _handleCookie);
+			}
 		}
 
 		private void UnadviseSolutionEvents()
 		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+
 			if (solution != null)
 			{
 				if (_handleCookie != uint.MaxValue)
@@ -146,8 +200,10 @@ namespace CrmPluginRegExt.VSPackage
 		///     See the Initialize method to see how the menu item is associated to this function using
 		///     the OleMenuCommandService service and the MenuCommand class.
 		/// </summary>
-		private void RegisterModifyPluginCallback(object sender, EventArgs args)
+		private async Task RegisterModifyPluginCallbackAsync(object sender, EventArgs args)
 		{
+			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
+
 			try
 			{
 				var session = Math.Abs(DateTime.Now.ToString(CultureInfo.CurrentCulture).GetHashCode());
@@ -163,7 +219,7 @@ namespace CrmPluginRegExt.VSPackage
 				foreach (var project in selected)
 				{
 					Status.Update($">>> Processing project: {DteHelper.GetProjectName(project)} <<<");
-					RegisterModifyPlugin(project);
+					await RegisterModifyPluginAsync(project);
 					Status.Update($"^^^ Finished processing project: {DteHelper.GetProjectName(project)} ^^^");
 				}
 
@@ -190,15 +246,17 @@ namespace CrmPluginRegExt.VSPackage
 			}
 		}
 
-		private void RegisterModifyPlugin(Project project)
+		private async Task RegisterModifyPluginAsync(Project project)
 		{
 			DteHelper.SetCurrentProject(project);
-			var regWindow = new Login(GetService(typeof(SDTE)) as DTE2);
+			var regWindow = new Login(await GetServiceAsync(typeof(SDTE)) as DTE2);
 			regWindow.ShowModal();
 		}
 
-		private void UpdatePluginCallback(object sender, EventArgs args)
+		private async Task UpdatePluginCallbackAsync(object sender, EventArgs args)
 		{
+			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
+
 			try
 			{
 				var session = Math.Abs(DateTime.Now.ToString(CultureInfo.CurrentCulture).GetHashCode());
@@ -212,7 +270,7 @@ namespace CrmPluginRegExt.VSPackage
 				foreach (var project in DteHelper.GetSelectedProjects())
 				{
 					Status.Update($">>> Processing project: {DteHelper.GetProjectName(project)} <<<");
-					UpdatePlugin(project);
+					await UpdatePluginAsync(project);
 					Status.Update($"^^^ Finished processing project: {DteHelper.GetProjectName(project)} ^^^");
 				}
 
@@ -239,7 +297,7 @@ namespace CrmPluginRegExt.VSPackage
 			}
 		}
 
-		private void UpdatePlugin(Project project)
+		private async Task UpdatePluginAsync(Project project)
 		{
 			DteHelper.SetCurrentProject(project);
 
@@ -249,7 +307,7 @@ namespace CrmPluginRegExt.VSPackage
 			// if no connection info, then it's a new run
 			if (settings.ConnectionString.IsEmpty())
 			{
-				RegisterModifyPlugin(project);
+				await RegisterModifyPluginAsync(project);
 			}
 			else
 			{
@@ -287,7 +345,7 @@ namespace CrmPluginRegExt.VSPackage
 				else
 				{
 					// else open dialogue
-					RegisterModifyPlugin(project);
+					await RegisterModifyPluginAsync(project);
 				}
 			}
 		}

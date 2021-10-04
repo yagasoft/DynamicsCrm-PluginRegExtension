@@ -30,8 +30,8 @@ using Microsoft.VisualStudio.Shell;
 // You can specify all the values or you can default the Revision and Build Numbers 
 // by using the '*' as shown below:
 
-[assembly: AssemblyVersion("2.2.4.0")]
-[assembly: AssemblyFileVersion("2.2.4.0")]
+[assembly: AssemblyVersion("2.3.1.0")]
+[assembly: AssemblyFileVersion("2.3.1.0")]
 
 
 [assembly: ProvideBindingRedirection(AssemblyName = "Microsoft.Xrm.Sdk",
@@ -57,3 +57,7 @@ using Microsoft.VisualStudio.Shell;
 [assembly: ProvideBindingRedirection(AssemblyName = "Newtonsoft.Json",
 	CodeBase = @"$PackageFolder$\Newtonsoft.Json.dll",
 	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "10.0.0.0")]
+
+[assembly: ProvideBindingRedirection(AssemblyName = "Yagasoft.Libraries.Common",
+	CodeBase = @"$PackageFolder$\Yagasoft.Libraries.Common.dll",
+	OldVersionLowerBound = "0.0.0.0", OldVersionUpperBound = "3.0.0.0")]
