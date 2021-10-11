@@ -96,7 +96,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 							CachingParams = new CachingParams { CacheScope = CacheScope.Service },
 							OperationHistoryLimit = 1
 						});
-					CacheHelpers.AddToMemCache(memKey, service, DateTime.Now.AddYears(1));
+					CacheHelpers.AddToMemCache(memKey, service, TimeSpan.MaxValue);
 					
 					Status.Update($"Created connection.");
 

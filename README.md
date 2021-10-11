@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension](https://badges.gitter.im/yagasoft/DynamicsCrm-PluginRegExtension.svg)](https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-### Version: 2.3.1
+### Version: 2.3.2
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
@@ -23,6 +23,8 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Changes
 
+#### _v2.3.2 (2021-10-11)_
++ Updated: Common assembly reference
 #### _v2.3.1 (2021-10-04)_
 + Improved: upgraded to VS Async API
 + Fixed: non-existent entities in settings persisting, causing error with 'generate cached'
