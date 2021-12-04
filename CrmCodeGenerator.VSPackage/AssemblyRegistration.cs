@@ -321,7 +321,6 @@ namespace CrmPluginRegExt.VSPackage
 			var existingTypeNames = GetExistingTypeNames();
 
 			AddNewTypes(existingTypeNames);
-			RefreshTypes(existingTypeNames);
 
 			//UpdateStatus("Saving modified assembly to CRM ...");
 			//Context.SaveChanges();
@@ -354,7 +353,7 @@ namespace CrmPluginRegExt.VSPackage
 			pluginClasses.Where(pluginType => !existingTypeNames.Contains(pluginType)).ToList()
 				.ForEach(pluginType =>
 						 {
-							 var className = pluginType.Split('.')[pluginType.Split('.').Length - 1];
+							 var className = pluginType.Split('.').LastOrDefault();
 
 							 UpdateStatus($"Adding plugin '{className}' ... ", 1);
 
@@ -377,7 +376,7 @@ namespace CrmPluginRegExt.VSPackage
 			wfClasses.Where(pluginType => !existingTypeNames.Contains(pluginType)).ToList()
 				.ForEach(pluginType =>
 						 {
-							 var className = pluginType.Split('.')[pluginType.Split('.').Length - 1];
+							 var className = pluginType.Split('.').LastOrDefault();
 
 							 UpdateStatus($"Adding custom step '{className}' ... ", 1);
 
@@ -407,64 +406,6 @@ namespace CrmPluginRegExt.VSPackage
 			var existingTypeNames = CrmAssemblyHelper.GetCrmTypes(Id, ConnectionString)
 				.Select(type => type.TypeName).ToList();
 			return existingTypeNames;
-		}
-
-		private void RefreshTypes(List<string> existingTypeNames)
-		{
-			var wfClasses = AssemblyHelper.GetClasses<CodeActivity>();
-
-			if (!wfClasses.Any())
-			{
-				return;
-			}
-
-			UpdateStatus("Refreshing custom steps ... ", 1);
-
-			// create new types
-			Parallel.ForEach(wfClasses.Where(existingTypeNames.Contains), new ParallelOptions { MaxDegreeOfParallelism = 5 },
-				pluginType =>
-				{
-					var className = pluginType.Split('.')[pluginType.Split('.').Length - 1];
-
-					UpdateStatus($"Refreshing '{className}' ... ");
-
-					Guid? typeId;
-					
-					var service = GetConnection(ConnectionString);
-					
-					using (var context = new XrmServiceContext(service) { MergeOption = MergeOption.NoTracking })
-					{
-						typeId =
-							(from typeQ in context.PluginTypeSet
-							 where typeQ.TypeName == pluginType
-							 select typeQ.PluginTypeId).First();
-					}
-
-					if (typeId == null)
-					{
-						throw new Exception("Failed to get plugin type ID.");
-					}
-
-					var updatedType =
-						new PluginType
-						{
-							PluginTypeId = typeId,
-							Name = pluginType,
-							TypeName = pluginType,
-							FriendlyName = className,
-							PluginAssemblyId = new EntityReference(PluginAssembly.EntityLogicalName, Id),
-							WorkflowActivityGroupName = string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
-								DteHelper.GetProjectName(), AssemblyHelper.GetAssemblyVersion())
-						};
-
-					UpdateStatus($"Refreshing type '{updatedType.Id}' ... ");
-
-					service.Update(updatedType);
-
-					UpdateStatus($"Finished refreshing '{className}'.");
-				});
-
-			UpdateStatus("Finished refreshing custom steps.", -1);
 		}
 
 		private void DeleteObsoleteTypes()

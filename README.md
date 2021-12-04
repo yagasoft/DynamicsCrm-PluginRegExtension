@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension](https://badges.gitter.im/yagasoft/DynamicsCrm-PluginRegExtension.svg)](https://gitter.im/yagasoft/DynamicsCrm-PluginRegExtension?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-### Version: 2.3.2
+### Version: 2.4.1
 ---
 
 A Visual Studio extension that reduces the hassle of using the official plugin tool, so it is much easier and faster to update plugins.
@@ -23,6 +23,9 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 
 ## Changes
 
+#### _v2.4.1 (2021-12-04)_
++ Fixed: random range error
++ Removed: 'refresh' of WF steps, as it doesn't work in v9.1 (increment the assembly version instead)
 #### _v2.3.2 (2021-10-11)_
 + Updated: Common assembly reference
 #### _v2.3.1 (2021-10-04)_
