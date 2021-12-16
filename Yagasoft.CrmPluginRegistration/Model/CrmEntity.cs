@@ -68,11 +68,6 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 		public void UpdateInfo()
 		{
-			if (Id == Guid.Empty)
-			{
-				throw new Exception("Can't fetch '" + GetType().Name + "' info with empty ID.");
-			}
-
 			RunUpdateLogic();
 
 			IsUpdated = true;

@@ -14,19 +14,19 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 {
 	public static class CrmAssemblyHelpers
 	{
-		public static PluginAssembly GetCrmAssembly(string assemblyName,
+		public static IReadOnlyList<PluginAssembly> GetCrmAssembly(string assemblyName,
 			IConnectionManager connectionManager, IPluginRegLogger pluginRegLogger)
 		{
 			pluginRegLogger.Log("Fetching CRM assembly ... ");
 
-			PluginAssembly assembly;
+			IReadOnlyList<PluginAssembly> assembly;
 
 			using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
 			{
 				assembly =
 					(from assemblyQ in context.PluginAssemblySet
 					 where assemblyQ.Name == assemblyName
-					 orderby assemblyQ.Version descending
+					 orderby assemblyQ.Version
 					 select new PluginAssembly
 							{
 								Id = assemblyQ.Id,
@@ -35,7 +35,7 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 								Version = assemblyQ.Version,
 								Culture = assemblyQ.Culture,
 								PublicKeyToken = assemblyQ.PublicKeyToken
-							}).FirstOrDefault();
+							}).ToArray();
 			}
 
 			pluginRegLogger.Log("** Finished fetching CRM assembly.");
@@ -55,7 +55,7 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 				throw new Exception("Assembly doesn't exist in CRM.");
 			}
 
-			var id = assembly.Id;
+			var id = assembly.FirstOrDefault()?.Id ?? Guid.Empty;
 
 			pluginRegLogger.Log("** Finished getting assembly ID. ID => " + id);
 
@@ -86,8 +86,7 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 				throw new Exception("Assembly doesn't exist in CRM.");
 			}
 
-			var isolated = assembly.IsolationMode.Value
-				== (int)PluginAssembly.Enums.IsolationMode.Sandbox;
+			var isolated = assembly.FirstOrDefault()?.IsolationMode.Value == (int)PluginAssembly.Enums.IsolationMode.Sandbox;
 
 			pluginRegLogger.Log("** Finished checking assembly isolation. Isolated => " + isolated);
 

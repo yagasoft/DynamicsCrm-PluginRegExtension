@@ -335,7 +335,6 @@ namespace CrmPluginRegExt.VSPackage
 				// if the assembly is registered, update
 				if (CrmAssemblyHelpers.IsAssemblyRegistered(assemblyName, connectionManager, registrationLogger))
 				{
-					var id = CrmAssemblyHelpers.GetAssemblyId(assemblyName, connectionManager, registrationLogger);
 					registration.UpdateAssembly(null);
 					Status.Update($"Ran update on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}.");
 					Status.Update($"For project: {DteHelper.GetProjectName(DteHelper.CurrentProject)}.");

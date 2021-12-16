@@ -63,4 +63,4 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 + Initial release
 
 ---
-**Copyright &copy; by Ahmed Elsawalhy ([Yagasoft](http://yagasoft.com))** -- _GPL v3 Licence_
+**Copyright &copy; by Ahmed Elsawalhy ([Yagasoft](https://yagasoft.com))** -- _GPL v3 Licence_
