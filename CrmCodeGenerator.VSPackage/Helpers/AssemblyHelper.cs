@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CrmPluginRegExt.AssemblyInfoLoader;
-using CrmPluginRegExt.VSPackage.Model;
 using EnvDTE;
 using Microsoft.Xrm.Sdk;
 
@@ -15,48 +14,14 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	internal static class AssemblyHelper
 	{
-		internal static List<string> GetClasses<TClassType>(Project project = null, bool buildProject = false)
+		internal static string GetAssemblyPath()
 		{
-			if (buildProject)
-			{
-				BuildProject();
-			}
-
-			project = project ?? DteHelper.GetSelectedProject();
-			return GetAssemblyInfo(typeof(TClassType).FullName, project).Classes.ToList();
+			return DteHelper.GetAssemblyPath();
 		}
 
-		internal static string GetAssemblyVersion(Project project = null, bool buildProject = false)
+		internal static string GetAssemblyName()
 		{
-			if (buildProject)
-			{
-				BuildProject();
-			}
-
-			project = project ?? DteHelper.GetSelectedProject();
-			return GetAssemblyInfo(project: project).Version;
-		}
-
-		internal static AssemblyInfo GetAssemblyInfo(string fullClassName = "", Project project = null, bool buildProject = false)
-		{
-			if (buildProject)
-			{
-				BuildProject();
-			}
-
-			project = project ?? DteHelper.GetSelectedProject();
-			return new AssemblyInfoLoader.AssemblyInfoLoader().GetAssemblyInfo(DteHelper.GetAssemblyPath(project),
-				DteHelper.GetAssemblyDirectory() + "\\CrmPluginRegExt.AssemblyInfoLoader.dll", fullClassName);
-		}
-
-		internal static byte[] GetAssemblyData(bool buildProject = false)
-		{
-			if (buildProject)
-			{
-				BuildProject();
-			}
-
-			return File.ReadAllBytes(DteHelper.GetAssemblyPath());
+			return Path.GetFileNameWithoutExtension(GetAssemblyPath());
 		}
 
 		internal static void BuildProject()

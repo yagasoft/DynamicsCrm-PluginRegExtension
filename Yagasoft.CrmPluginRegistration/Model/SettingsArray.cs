@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public class SettingsArray : INotifyPropertyChanged
 	{

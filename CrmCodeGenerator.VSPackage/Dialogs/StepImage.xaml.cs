@@ -5,9 +5,9 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using CrmPluginEntities;
-using CrmPluginRegExt.VSPackage.Model;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.Xrm.Sdk;
+using Yagasoft.CrmPluginRegistration.Model;
 using Yagasoft.Libraries.Common;
 
 #endregion

@@ -10,7 +10,7 @@ using Yagasoft.Libraries.Common;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public class Settings : INotifyPropertyChanged
 	{

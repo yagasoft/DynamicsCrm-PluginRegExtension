@@ -7,13 +7,13 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using CrmPluginRegExt.VSPackage.Helpers;
-using CrmPluginRegExt.VSPackage.Model;
 using EnvDTE;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.VersionControl.Client;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Newtonsoft.Json;
+using Yagasoft.CrmPluginRegistration.Model;
 using Yagasoft.Libraries.Common;
 using Yagasoft.Libraries.EnhancedOrgService.Helpers;
 

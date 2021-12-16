@@ -431,7 +431,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Xrm.Client, Version=7.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>..\packages\Yagasoft.Libraries.EnhancedOrgService.6.1.6\lib\net462\Microsoft.Xrm.Client.dll</HintPath>
+      <HintPath>..\packages\Yagasoft.Libraries.EnhancedOrgService.6.1.7\lib\net462\Microsoft.Xrm.Client.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Xrm.Sdk, Version=9.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -564,8 +564,8 @@
       <HintPath>..\packages\Yagasoft.Libraries.Common.4.1.1\lib\net462\Yagasoft.Libraries.Common.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Yagasoft.Libraries.EnhancedOrgService, Version=6.1.6.0, Culture=neutral, PublicKeyToken=d99f90f6e31ed2df, processorArchitecture=MSIL">
-      <HintPath>..\packages\Yagasoft.Libraries.EnhancedOrgService.6.1.6\lib\net462\Yagasoft.Libraries.EnhancedOrgService.dll</HintPath>
+    <Reference Include="Yagasoft.Libraries.EnhancedOrgService, Version=6.1.7.0, Culture=neutral, PublicKeyToken=d99f90f6e31ed2df, processorArchitecture=MSIL">
+      <HintPath>..\packages\Yagasoft.Libraries.EnhancedOrgService.6.1.7\lib\net462\Yagasoft.Libraries.EnhancedOrgService.dll</HintPath>
       <Private>True</Private>
     </Reference>
   </ItemGroup>
@@ -581,7 +581,6 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyRegistration.cs" />
     <Compile Include="Configuration.cs" />
     <Compile Include="Dialogs\Converters\BoolToVisibilityConverter.cs" />
     <Compile Include="Dialogs\Login.xaml.cs">
@@ -595,30 +594,15 @@
     </Compile>
     <Compile Include="FilteredComboBox.cs" />
     <Compile Include="Helpers\AssemblyHelper.cs" />
-    <Compile Include="Helpers\BlockingQueue.cs" />
     <Compile Include="Helpers\ConnectionHelper.cs" />
-    <Compile Include="Helpers\CrmAssemblyHelper.cs" />
-    <Compile Include="Helpers\CrmDataHelper.cs" />
     <Compile Include="Helpers\DteHelper.cs" />
-    <Compile Include="Helpers\EntityHelper.cs" />
-    <Compile Include="Helpers\IEnumerablesExtensions.cs" />
-    <Compile Include="Helpers\PropertyBagExtensions.cs" />
     <Compile Include="Guids.cs" />
-    <Compile Include="Helpers\SimpleAES.cs" />
     <Compile Include="Helpers\Status.cs" />
-    <Compile Include="Helpers\StreamEater.cs" />
-    <Compile Include="Helpers\ThreadingHelper.cs" />
     <Compile Include="Helpers\WindowExtensions.cs" />
-    <Compile Include="Model\CrmAssembly.cs" />
-    <Compile Include="Model\CrmEntity.cs" />
-    <Compile Include="Model\CrmStepImage.cs" />
-    <Compile Include="Model\CrmTypeStep.cs" />
-    <Compile Include="Model\CrmPluginType.cs" />
     <Compile Include="Model\CrmAttribute.cs" />
     <Compile Include="Model\CrmAttribute.Extensions.cs" />
-    <Compile Include="Model\Settings.cs" />
     <Compile Include="Helpers\Helper.cs" />
-    <Compile Include="Model\SettingsArray.cs" />
+    <Compile Include="PluginRegistration\RegistrationFeedback.cs" />
     <Compile Include="Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -673,6 +657,7 @@
     </Content>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Compile Include="PluginRegistration\ConnectionManager.cs" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
@@ -712,9 +697,9 @@
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CrmCodeGenerator.AssemblyInfoLoader\CrmPluginRegExt.AssemblyInfoLoader.csproj">
-      <Project>{53abb3e7-da58-4bb7-bb0f-5b4a7439e20b}</Project>
-      <Name>CrmPluginRegExt.AssemblyInfoLoader</Name>
+    <ProjectReference Include="..\Yagasoft.CrmPluginRegistration\Yagasoft.CrmPluginRegistration.csproj">
+      <Project>{b85c9dc1-3c15-43a9-b6b0-64b5d3353d81}</Project>
+      <Name>Yagasoft.CrmPluginRegistration</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -732,9 +717,7 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Scripts\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.BannedApiAnalyzers.2.9.4\analyzers\dotnet\cs\Microsoft.CodeAnalysis.BannedApiAnalyzers.dll" />
     <Analyzer Include="..\packages\Microsoft.CodeAnalysis.BannedApiAnalyzers.2.9.4\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.BannedApiAnalyzers.dll" />

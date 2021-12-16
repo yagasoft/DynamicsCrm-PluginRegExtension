@@ -225,7 +225,12 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 
 		public static string GetAssemblyName(Project project = null)
 		{
-			return GetProjectName(project) + ".dll";
+			return GetProjectName(project);
+		}
+
+		public static string GetAssemblyFileName(Project project = null)
+		{
+			return GetAssemblyName(project) + ".dll";
 		}
 
 		internal static string GetAssemblyPath(Project project = null)
@@ -233,7 +238,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			project = project ?? GetSelectedProject();
 			return project.GetProjectDirectory()
 			       + "\\bin\\" + GetSolutionConfiguration() + "\\"
-			       + GetAssemblyName(project);
+			       + GetAssemblyFileName(project);
 		}
 
 		internal static bool IsConfirmed(string text, string title)

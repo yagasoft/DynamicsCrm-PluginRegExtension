@@ -6,20 +6,23 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
+using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.Libraries.Common;
-using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public class CrmAssembly : CrmEntity<CrmPluginType>
 	{
 		public bool IsSandbox { get; set; }
 
-		protected override void RunUpdateLogic(string connectionString)
+		public CrmAssembly(IConnectionManager connectionManager) : base(connectionManager)
+		{ }
+
+		protected override void RunUpdateLogic()
 		{
-			using (var context = new XrmServiceContext(GetConnection(connectionString)) { MergeOption = MergeOption.NoTracking })
+			using (var context = new XrmServiceContext(ConnectionManager.Get()) { MergeOption = MergeOption.NoTracking })
 			{
 				var result =
 					(from assembly in context.PluginAssemblySet
@@ -51,7 +54,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 					.GroupBy(assembly => assembly.typeId)
 					.Where(typeGroup => typeGroup.First().id == Id)
 					.Select(typeGroup =>
-						new CrmPluginType
+						new CrmPluginType(ConnectionManager)
 						{
 							Id = typeGroup.First().typeId,
 							Name = typeGroup.First().typeName,

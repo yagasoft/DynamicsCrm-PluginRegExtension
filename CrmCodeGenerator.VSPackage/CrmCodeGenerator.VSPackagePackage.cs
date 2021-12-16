@@ -4,6 +4,7 @@ using System;
 using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -12,12 +13,15 @@ using System.Windows;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Dialogs;
 using CrmPluginRegExt.VSPackage.Helpers;
-using CrmPluginRegExt.VSPackage.Model;
+using CrmPluginRegExt.VSPackage.PluginRegistration;
 using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
+using Yagasoft.CrmPluginRegistration;
+using Yagasoft.CrmPluginRegistration.Assembly;
+using Yagasoft.CrmPluginRegistration.Logger;
 using Yagasoft.Libraries.Common;
 using Task = System.Threading.Tasks.Task;
 
@@ -71,8 +75,6 @@ namespace CrmPluginRegExt.VSPackage
 		/// </summary>
 		protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
 		{
-			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
-
 			//AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Sdk", new Version("9.0.0.0"), "31bf3856ad364e35");
 			//AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Sdk.Deployment", new Version("9.0.0.0"), "31bf3856ad364e35");
 			//AssemblyHelpers.RedirectAssembly("Microsoft.Xrm.Tooling.Connector", new Version("4.0.0.0"), "31bf3856ad364e35");
@@ -165,8 +167,6 @@ namespace CrmPluginRegExt.VSPackage
 
 		private async Task AdviseSolutionEventsAsync()
 		{
-			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
-
 			UnadviseSolutionEvents();
 
 			solution = await GetServiceAsync(typeof (SVsSolution)) as IVsSolution;
@@ -202,8 +202,6 @@ namespace CrmPluginRegExt.VSPackage
 		/// </summary>
 		private async Task RegisterModifyPluginCallbackAsync(object sender, EventArgs args)
 		{
-			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
-
 			try
 			{
 				var session = Math.Abs(DateTime.Now.ToString(CultureInfo.CurrentCulture).GetHashCode());
@@ -219,7 +217,12 @@ namespace CrmPluginRegExt.VSPackage
 				foreach (var project in selected)
 				{
 					Status.Update($">>> Processing project: {DteHelper.GetProjectName(project)} <<<");
-					await RegisterModifyPluginAsync(project);
+
+					DteHelper.SetCurrentProject(project);
+					AssemblyHelper.BuildProject();
+
+					await RegisterModifyPluginAsync();
+
 					Status.Update($"^^^ Finished processing project: {DteHelper.GetProjectName(project)} ^^^");
 				}
 
@@ -246,17 +249,14 @@ namespace CrmPluginRegExt.VSPackage
 			}
 		}
 
-		private async Task RegisterModifyPluginAsync(Project project)
+		private async Task RegisterModifyPluginAsync()
 		{
-			DteHelper.SetCurrentProject(project);
 			var regWindow = new Login(await GetServiceAsync(typeof(SDTE)) as DTE2);
 			regWindow.ShowModal();
 		}
 
 		private async Task UpdatePluginCallbackAsync(object sender, EventArgs args)
 		{
-			await JoinableTaskFactory.SwitchToMainThreadAsync(DisposalToken);
-
 			try
 			{
 				var session = Math.Abs(DateTime.Now.ToString(CultureInfo.CurrentCulture).GetHashCode());
@@ -270,7 +270,12 @@ namespace CrmPluginRegExt.VSPackage
 				foreach (var project in DteHelper.GetSelectedProjects())
 				{
 					Status.Update($">>> Processing project: {DteHelper.GetProjectName(project)} <<<");
-					await UpdatePluginAsync(project);
+
+					DteHelper.SetCurrentProject(project);
+					AssemblyHelper.BuildProject();
+
+					await UpdatePluginAsync();
+
 					Status.Update($"^^^ Finished processing project: {DteHelper.GetProjectName(project)} ^^^");
 				}
 
@@ -297,55 +302,48 @@ namespace CrmPluginRegExt.VSPackage
 			}
 		}
 
-		private async Task UpdatePluginAsync(Project project)
+		private async Task UpdatePluginAsync()
 		{
-			DteHelper.SetCurrentProject(project);
-
 			var settingsArray = Configuration.LoadSettings();
 			var settings = settingsArray.GetSelectedSettings();
 
 			// if no connection info, then it's a new run
 			if (settings.ConnectionString.IsEmpty())
 			{
-				await RegisterModifyPluginAsync(project);
+				await RegisterModifyPluginAsync();
 			}
 			else
 			{
-				var registration = new AssemblyRegistration(settings);
+				var connectionManager = new ConnectionManager(settings.ConnectionString);
+				var registrationFeedback = new RegistrationFeedback();
+				var registrationLogger = new DefaultPluginRegLogger(m => Status.Update(m));
 
-				registration.PropertyChanged +=
+				var assemblyPath = AssemblyHelper.GetAssemblyPath();
+				var assemblyName = AssemblyHelper.GetAssemblyName();
+
+				var registration = new AssemblyRegistration(settings, assemblyPath, connectionManager, registrationFeedback);
+
+				registration.RegLogEntryAdded +=
 					(o, args) =>
 					{
-						try
+						lock (registration.LoggingLock)
 						{
-							switch (args.PropertyName)
-							{
-								case "LogMessage":
-									lock (registration.LoggingLock)
-									{
-										Status.Update(registration.LogMessage);
-									}
-									break;
-							}
-						}
-						catch
-						{
-							// ignored
+							Status.Update(args.Message);
 						}
 					};
 
 				// if the assembly is registered, update
-				if (CrmAssemblyHelper.IsAssemblyRegistered(settings.ConnectionString))
+				if (CrmAssemblyHelpers.IsAssemblyRegistered(assemblyName, connectionManager, registrationLogger))
 				{
-					var id = CrmAssemblyHelper.GetAssemblyId(settings.ConnectionString);
+					var id = CrmAssemblyHelpers.GetAssemblyId(assemblyName, connectionManager, registrationLogger);
 					registration.UpdateAssembly(null);
 					Status.Update($"Ran update on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}.");
-					Status.Update($"For project: {DteHelper.GetProjectName(project)}.");
+					Status.Update($"For project: {DteHelper.GetProjectName(DteHelper.CurrentProject)}.");
 				}
 				else
 				{
 					// else open dialogue
-					await RegisterModifyPluginAsync(project);
+					await RegisterModifyPluginAsync();
 				}
 			}
 		}

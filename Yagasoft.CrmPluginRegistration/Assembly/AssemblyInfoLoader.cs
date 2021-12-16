@@ -10,19 +10,18 @@ using System.Reflection;
 
 namespace CrmPluginRegExt.AssemblyInfoLoader
 {
-
 	public class AssemblyInfoLoader
 	{
 		public AssemblyInfo GetAssemblyInfo(string assemblyPath, string loaderAssemblyPath,
-			string fullBaseClassName = "")
+			params string[] fullBaseClassName)
 		{
 			AssemblyInfo assemblyInfo = null;
 
 			var setup = new AppDomainSetup
-			{
-				ApplicationBase = Path.GetDirectoryName(assemblyPath),
-				ShadowCopyFiles = "true"
-			};
+						{
+							ApplicationBase = Path.GetDirectoryName(assemblyPath),
+							ShadowCopyFiles = "true"
+						};
 
 			// create a temporary app domain
 			var tempDomain = AppDomain.CreateDomain("TempDomain", null, setup);
@@ -55,11 +54,10 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 		public CultureInfo CultureInfo { get; set; }
 		public byte[] PublicKeyToken { get; set; }
 		public string PublicKeyTokenString { get; set; }
-		public string[] Classes { get; set; }
+		public ClassInfo[] Classes { get; set; }
 
 		public AssemblyInfo()
-		{
-		}
+		{ }
 
 		public AssemblyInfo(AssemblyName assemblyName)
 		{
@@ -81,14 +79,14 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 			}
 		}
 
-		public AssemblyInfo(Assembly assembly, string fullBaseClassName = "")
+		public AssemblyInfo(Assembly assembly, string[] classNames)
 			: this(assembly.GetName())
 		{
 			RuntimeVersion = assembly.ImageRuntimeVersion;
-			Classes = assembly.GetTypes()
-				.Where(type => InheritsFrom(type, fullBaseClassName)
-								   && !type.IsAbstract && type.IsPublic)
-				.Select(type => type.FullName).ToArray();
+			var types = assembly.GetTypes();
+			Classes = classNames.SelectMany(c => types
+				.Where(type => InheritsFrom(type, c) && !type.IsAbstract && type.IsPublic)
+				.Select(type => new ClassInfo(c, type.FullName))).ToArray();
 		}
 
 		// credit: http://stackoverflow.com/a/18375526/1919456
@@ -121,9 +119,22 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 		}
 	}
 
+	[Serializable]
+	public class ClassInfo
+	{
+		public string BaseType { get; set; }
+		public string Type { get; set; }
+
+		public ClassInfo(string baseType, string type)
+		{
+			BaseType = baseType;
+			Type = type;
+		}
+	}
+
 	public class AssemblyLoader : MarshalByRefObject
 	{
-		public AssemblyInfo LoadAssemblyInfo(string assemblyPath, string fullBaseClassName = "")
+		public AssemblyInfo LoadAssemblyInfo(string assemblyPath, string[] fullBaseClassName)
 		{
 			var assembly = Assembly.LoadFrom(assemblyPath);
 			return new AssemblyInfo(assembly, fullBaseClassName);
@@ -148,10 +159,10 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 			// *** and append the base path of the original assembly (ie. look in the same dir)
 			// *** NOTE: this doesn't account for special search paths but then that never
 			//           worked before either.
-			var Parts = args.Name.Split(',');
-			var File = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\" + Parts[0].Trim() + ".dll";
+			var parts = args.Name.Split(',');
+			var file = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + "\\" + parts[0].Trim() + ".dll";
 
-			return Assembly.LoadFrom(File);
+			return Assembly.LoadFrom(file);
 		}
 	}
 }

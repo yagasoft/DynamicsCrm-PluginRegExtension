@@ -7,22 +7,28 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Windows.Threading;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk;
+using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.Libraries.Common;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public abstract class CrmEntityNonGeneric : INotifyPropertyChanged
 	{
 		public Guid Id { get; set; }
 
-		internal bool IsUpdated;
+		public bool IsUpdated;
+
+		protected readonly IConnectionManager ConnectionManager;
 
 		private string name;
+
+		protected CrmEntityNonGeneric(IConnectionManager connectionManager)
+		{
+			this.ConnectionManager = connectionManager;
+		}
 
 		public string Name
 		{
@@ -60,20 +66,20 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		#endregion
 
-		public void UpdateInfo(string connectionString)
+		public void UpdateInfo()
 		{
 			if (Id == Guid.Empty)
 			{
 				throw new Exception("Can't fetch '" + GetType().Name + "' info with empty ID.");
 			}
 
-			RunUpdateLogic(connectionString);
+			RunUpdateLogic();
 
 			IsUpdated = true;
 			OnUpdate();
 		}
 
-		protected abstract void RunUpdateLogic(string connectionString);
+		protected abstract void RunUpdateLogic();
 
 		public TEntityType Clone<TEntityType>() where TEntityType : CrmEntityNonGeneric
 		{
@@ -84,6 +90,10 @@ namespace CrmPluginRegExt.VSPackage.Model
 	public abstract class CrmEntity<TChildType> : CrmEntityNonGeneric where TChildType : CrmEntityNonGeneric
 	{
 		private ObservableCollection<TChildType> children = new ObservableCollection<TChildType>();
+
+		protected CrmEntity(IConnectionManager connectionManager) : base(connectionManager)
+		{ }
+
 		protected ObservableCollection<TChildType> Unfiltered { get; set; }
 
 		public ObservableCollection<TChildType> Children

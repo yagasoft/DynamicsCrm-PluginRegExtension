@@ -1,35 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Xrm.Client;
-using Microsoft.Xrm.Client.Services;
-using CrmPluginRegExt.VSPackage.Model;
-using Microsoft.Xrm.Sdk.Discovery;
-using System.Collections.ObjectModel;
-using System.Runtime.Caching;
-using System.ServiceModel.Description;
+﻿#region Imports
+
+using System;
 using System.Text.RegularExpressions;
-using CrmPluginEntities;
-using Microsoft.Crm.Sdk.Messages;
-using Microsoft.Xrm.Client.Caching;
-using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.Libraries.Common;
-using Yagasoft.Libraries.EnhancedOrgService.Factories;
 using Yagasoft.Libraries.EnhancedOrgService.Helpers;
 using Yagasoft.Libraries.EnhancedOrgService.Params;
-using Yagasoft.Libraries.EnhancedOrgService.Pools;
-using Yagasoft.Libraries.EnhancedOrgService.Services;
 using Yagasoft.Libraries.EnhancedOrgService.Services.Enhanced;
 using Yagasoft.Libraries.EnhancedOrgService.Services.Enhanced.Cache;
-using CrmHelpers = Yagasoft.Libraries.Common.CrmHelpers;
+
+#endregion
 
 namespace CrmPluginRegExt.VSPackage.Helpers
 {
 	public class ConnectionHelper
-    {
+	{
 		private static readonly object lockObj = new object();
 		private const string ConnCacheMemKey = "ys_CrmPluginExt_Conn_846194";
 
@@ -97,7 +81,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 							OperationHistoryLimit = 1
 						});
 					CacheHelpers.AddToMemCache(memKey, service, TimeSpan.MaxValue);
-					
+
 					Status.Update($"Created connection.");
 
 					return service;
@@ -109,5 +93,5 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 				}
 			}
 		}
-    }
+	}
 }

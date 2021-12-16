@@ -5,11 +5,11 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
-using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
+using Yagasoft.CrmPluginRegistration.Connection;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public class CrmPluginType : CrmEntity<CrmTypeStep>
 	{
@@ -19,14 +19,17 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		public string IsWorkflowString => IsWorkflow ? "[WF] " : "";
 
-		protected override void RunUpdateLogic(string connectionString)
+		public CrmPluginType(IConnectionManager connectionManager) : base(connectionManager)
+		{ }
+
+		protected override void RunUpdateLogic()
 		{
 			if (IsWorkflow)
 			{
 				return;
 			}
 
-			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(ConnectionManager.Get()) {MergeOption = MergeOption.NoTracking})
 			{
 				var result =
 					(from type in context.PluginTypeSet
@@ -57,7 +60,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 					.GroupBy(step => step.stepId)
 					.Where(stepGroup => stepGroup.First().stepId != Guid.Empty)
 					.Select(stepGroup =>
-						new CrmTypeStep
+						new CrmTypeStep(ConnectionManager)
 						{
 							Id = stepGroup.First().stepId,
 							Name = stepGroup.First().stepName,

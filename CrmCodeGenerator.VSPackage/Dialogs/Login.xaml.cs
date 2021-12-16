@@ -1,32 +1,35 @@
 ﻿#region Imports
 
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
-using CrmPluginRegExt.VSPackage.Model;
+using CrmPluginRegExt.VSPackage.PluginRegistration;
 using EnvDTE80;
-using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Client;
+using Microsoft.VisualStudio.Shell;
+using Yagasoft.CrmPluginRegistration;
+using Yagasoft.CrmPluginRegistration.Assembly;
+using Yagasoft.CrmPluginRegistration.Helpers;
+using Yagasoft.CrmPluginRegistration.Logger;
+using Yagasoft.CrmPluginRegistration.Model;
 using Yagasoft.Libraries.Common;
 using Application = System.Windows.Forms.Application;
 using MultiSelectComboBoxClass = CrmCodeGenerator.Controls.MultiSelectComboBox;
+using Task = System.Threading.Tasks.Task;
 
 #endregion
 
@@ -39,13 +42,19 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v2.4.1";
+		private const string WindowTitle = "Plugin Registration Extension v3.1.1";
+
+		private readonly ConnectionManager connectionManager;
+		private DefaultPluginRegLogger registrationLog;
+		private readonly RegistrationFeedback registrationFeedback;
+
+		private string assemblyName;
 
 		private Settings settings;
 		private readonly SettingsArray settingsArray;
-		private readonly AssemblyRegistration assemblyRegistration;
+		private AssemblyRegistration assemblyRegistration;
 
-		private readonly CrmAssembly crmAssembly = new CrmAssembly();
+		private CrmAssembly crmAssembly;
 
 		private bool isSandbox;
 
@@ -166,21 +175,21 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		{
 			Assembly.Load("Xceed.Wpf.Toolkit");
 
+			connectionManager = new ConnectionManager();
+			registrationFeedback = new RegistrationFeedback();
+
 			InitializeComponent();
 
 			var main = dte.GetMainWindow();
 			Owner = main;
 			//Loaded += delegate  { this.CenterWindow(main); };
 
-			assemblyRegistration = new AssemblyRegistration();
-
-			RegisterEvents();
-
 			settingsArray = Configuration.LoadSettings();
 		}
 
 		private void Window_Loaded(object sender, RoutedEventArgs e)
 		{
+			ThreadHelper.ThrowIfNotOnUIThread();
 			Title = $"{DteHelper.CurrentProject.Name} - {WindowTitle}";
 			SetUiContext();
 		}
@@ -208,12 +217,27 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void InitSettingsChange()
 		{
+			var assemblyPath = AssemblyHelper.GetAssemblyPath();
+			assemblyName = Path.GetFileNameWithoutExtension(assemblyPath);
+
+			registrationLog = new DefaultPluginRegLogger(m => UpdateStatus(m, true));
+
 			// make sure something valid is selected
 			settingsArray.SelectedSettingsIndex = Math.Max(0, settingsArray.SelectedSettingsIndex);
 
 			settings = settingsArray.GetSelectedSettings();
-			assemblyRegistration.Settings = settings;
-			crmAssembly.Id = assemblyRegistration.Id = Guid.Empty;
+
+			connectionManager.ConnectionString = settings.ConnectionString;
+
+			assemblyRegistration = new AssemblyRegistration(assemblyPath, connectionManager, registrationFeedback);
+
+			crmAssembly =
+				new CrmAssembly(connectionManager)
+				{
+					Id = assemblyRegistration.Id = Guid.Empty
+				};
+
+			RegisterEvents();
 
 			// data contexts for UI controls
 			DataContext = settings;
@@ -250,7 +274,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			try
 			{
 				ShowBusy("Checking assembly registration ...");
-				IsRegistered = CrmAssemblyHelper.IsAssemblyRegistered(settings.ConnectionString);
+				IsRegistered = CrmAssemblyHelpers.IsAssemblyRegistered(assemblyName, connectionManager, registrationLog);
 			}
 			catch
 			{
@@ -263,9 +287,10 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 
 			ShowBusy("Getting assembly ID ...");
-			crmAssembly.Id = assemblyRegistration.Id = CrmAssemblyHelper.GetAssemblyId(settings.ConnectionString);
+			crmAssembly.Id = assemblyRegistration.Id = CrmAssemblyHelpers
+				.GetAssemblyId(assemblyName, connectionManager, registrationLog);
 			UpdateStatus("Updating assembly info ...", true);
-			crmAssembly.UpdateInfo(settings.ConnectionString);
+			crmAssembly.UpdateInfo();
 		}
 
 		protected override void OnSourceInitialized(EventArgs e)
@@ -292,13 +317,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					{
 						switch (args.PropertyName)
 						{
-							case "LogMessage":
-								lock (assemblyRegistration.LoggingLock)
-								{
-									UpdateStatus(assemblyRegistration.LogMessage, true);
-								}
-								break;
-
 							case "CancelRegistration":
 								if (assemblyRegistration.CancelRegistration)
 								{
@@ -335,10 +353,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 								   {
 									   UpdateStatus("Updating assembly info ...", true);
 									   crmAssembly.Id = assemblyRegistration.Id;
-									   crmAssembly.UpdateInfo(settings.ConnectionString);
+									   crmAssembly.UpdateInfo();
 
 									   UpdateStatus("-- Finished registering/updating assembly.", false);
-									   UpdateStatus($"-- Ran on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}", false);
+									   UpdateStatus(
+										   $"-- Ran on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}",
+										   false);
 
 									   ShowBusy("Saving settings ...");
 									   Configuration.SaveConfigs(settingsArray);
@@ -357,7 +377,15 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 							   break;
 
 						   case RegistrationEvent.Delete:
-							   UpdateStatus($"-- Ran on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}", false);
+							   UpdateStatus(
+								   $"-- Ran on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}",
+								   false);
+							   break;
+
+						   case RegistrationEvent.Abort:
+							   UpdateStatus(
+								   $"-- Aborted on: {Regex.Replace(settings.ConnectionString, @"Password\s*?=.*?(?:;{0,1}$|;)", "Password=********;").Replace("\r\n", " ")}",
+								   false);
 							   break;
 
 						   default:
@@ -367,13 +395,22 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			crmAssembly.Updated +=
 				(o, args) =>
-			                       {
-				                       ParseCrmAssembly();
+				{
+					ParseCrmAssembly();
 
-				                       // update UI
-				                       Dispatcher.Invoke(
-					                       () => { ListPluginTypes.ItemsSource = crmAssembly.Children; });
-			                       };
+					// update UI
+					Dispatcher.Invoke(
+						() => { ListPluginTypes.ItemsSource = crmAssembly.Children; });
+				};
+
+			assemblyRegistration.RegLogEntryAdded +=
+				(o, args) =>
+				{
+					lock (assemblyRegistration.LoggingLock)
+					{
+						UpdateStatus(args.Message, true);
+					}
+				};
 		}
 
 		#endregion
@@ -384,32 +421,32 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		{
 			Dispatcher.Invoke(
 				() =>
-			                  {
-				                  var message = exception.Message
-				                                + (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
-				                  MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
-			                  });
+				{
+					var message = exception.Message
+						+ (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
+					MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
+				});
 		}
 
 		private void ShowBusy(string message)
 		{
 			Dispatcher.Invoke(
 				() =>
-			                  {
-				                  BusyIndicator.IsBusy = true;
-				                  BusyIndicator.BusyContent =
-					                  string.IsNullOrEmpty(message) ? "Please wait ..." : message;
-			                  }, DispatcherPriority.Send);
+				{
+					BusyIndicator.IsBusy = true;
+					BusyIndicator.BusyContent =
+						string.IsNullOrEmpty(message) ? "Please wait ..." : message;
+				}, DispatcherPriority.Send);
 		}
 
 		private void HideBusy()
 		{
 			Dispatcher.Invoke(
 				() =>
-			                  {
-				                  BusyIndicator.IsBusy = false;
-				                  BusyIndicator.BusyContent = "Please wait ...";
-			                  }, DispatcherPriority.Send);
+				{
+					BusyIndicator.IsBusy = false;
+					BusyIndicator.BusyContent = "Please wait ...";
+				}, DispatcherPriority.Send);
 		}
 
 		internal void UpdateStatus(string message, bool working, bool newLine = true)
@@ -456,37 +493,37 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 				new Thread(
 					() =>
-				           {
-					           try
-					           {
-						           if (IsRegistered)
-						           {
-									   assemblyRegistration.UpdateAssembly(IsSandbox);
-						           }
-						           else
-						           {
-									   assemblyRegistration.CreateAssembly(IsSandbox);
-						           }
-					           }
-					           catch (Exception ex)
-					           {
-						           var error = "[ERROR] " + ex.Message +
-						                       (ex.InnerException != null ? "\n" + "[ERROR] " + ex.InnerException.Message : "");
-						           UpdateStatus(error, false);
-						           UpdateStatus(ex.StackTrace, false);
-						           UpdateStatus("Unable to register assembly, see error above.", false);
-						           PopException(ex);
-					           }
-					           finally
-					           {
-								   HideBusy();
-					           }
-				           }).Start();
+					{
+						try
+						{
+							if (IsRegistered)
+							{
+								assemblyRegistration.UpdateAssembly(IsSandbox);
+							}
+							else
+							{
+								assemblyRegistration.CreateAssembly(IsSandbox);
+							}
+						}
+						catch (Exception ex)
+						{
+							var error = "[ERROR] " + ex.Message +
+								(ex.InnerException != null ? "\n" + "[ERROR] " + ex.InnerException.Message : "");
+							UpdateStatus(error, false);
+							UpdateStatus(ex.StackTrace, false);
+							UpdateStatus("Unable to register assembly, see error above.", false);
+							PopException(ex);
+						}
+						finally
+						{
+							HideBusy();
+						}
+					}).Start();
 			}
 			catch (Exception ex)
 			{
 				var error = "[ERROR] " + ex.Message +
-				            (ex.InnerException != null ? "\n" + "[ERROR] " + ex.InnerException.Message : "");
+					(ex.InnerException != null ? "\n" + "[ERROR] " + ex.InnerException.Message : "");
 				UpdateStatus(error, false);
 				UpdateStatus(ex.StackTrace, false);
 				UpdateStatus("Unable to register assembly, see error above.", false);
@@ -521,7 +558,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 						if (isClearCache)
 						{
-							CrmDataHelper.ClearCache();
+							CrmDataHelpers.ClearCache();
 						}
 					}
 					catch (Exception exception)
@@ -545,24 +582,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 
 			if (DteHelper.IsConfirmed("Are you sure you want to UNregister this plugin?" +
-			                          " This means that the plugin and all its steps will be deleted!", "Unregistration"))
+				" This means that the plugin and all its steps will be deleted!", "Unregistration"))
 			{
 				new Thread(() =>
-				           {
-					           try
-					           {
+						   {
+							   try
+							   {
 								   assemblyRegistration.DeleteAssembly(assemblyRegistration.Id);
 								   crmAssembly.Clear();
-					           }
-					           catch (Exception exception)
-					           {
-						           PopException(exception);
-					           }
-					           finally
-					           {
-						           UpdateStatus("", false);
-					           }
-				           }).Start();
+							   }
+							   catch (Exception exception)
+							   {
+								   PopException(exception);
+							   }
+							   finally
+							   {
+								   UpdateStatus("", false);
+							   }
+						   }).Start();
 			}
 		}
 
@@ -586,22 +623,22 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void ClearSelectionOnClickEmpty(object sender, MouseButtonEventArgs e)
 		{
 			Dispatcher.Invoke(() =>
-			                  {
-				                  var hitTestResult = VisualTreeHelper.HitTest((ListView) sender, e.GetPosition((ListView) sender));
-				                  var controlType = hitTestResult.VisualHit.DependencyObjectType.SystemType;
+							  {
+								  var hitTestResult = VisualTreeHelper.HitTest((ListView)sender, e.GetPosition((ListView)sender));
+								  var controlType = hitTestResult.VisualHit.DependencyObjectType.SystemType;
 
-				                  if (controlType == typeof (ScrollViewer))
-				                  {
-					                  ((ListView) sender).SelectedItem = null;
-				                  }
-			                  });
+								  if (controlType == typeof(ScrollViewer))
+								  {
+									  ((ListView)sender).SelectedItem = null;
+								  }
+							  });
 		}
 
 		#region Types
 
 		private void ListPluginTypes_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			var type = (CrmPluginType) ListPluginTypes.SelectedItem;
+			var type = (CrmPluginType)ListPluginTypes.SelectedItem;
 
 			IsPluginTypeStepsEnabled = type != null && !type.IsWorkflow;
 
@@ -614,7 +651,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						try
 						{
 							UpdateStatus("Updating plugin type info ...", true);
-							type.UpdateInfo(settings.ConnectionString);
+							type.UpdateInfo();
 							UpdateStatus("-- Finished updating plugin type info.", false);
 						}
 						catch (Exception exception)
@@ -645,134 +682,134 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ButtonAddStep_Click(object sender, RoutedEventArgs e)
 		{
-			var type = (CrmPluginType) ListPluginTypes.SelectedItem;
-			var newStep = new CrmTypeStep {Type = type};
+			var type = (CrmPluginType)ListPluginTypes.SelectedItem;
+			var newStep = new CrmTypeStep(connectionManager) { Type = type };
 
 			new Thread(() =>
-			           {
-				           TypeStep dialogue = null;
+					   {
+						   TypeStep dialogue = null;
 
 						   Dispatcher.Invoke(
 							   () =>
 							   {
-								   dialogue = new TypeStep(newStep, settings.ConnectionString);
+								   dialogue = new TypeStep(newStep, connectionManager);
 								   dialogue.ShowDialog();
 							   });
 
-				           try
-				           {
-					           if (!dialogue.IsUpdate)
-					           {
-						           return;
-					           }
+						   try
+						   {
+							   if (!dialogue.IsUpdate)
+							   {
+								   return;
+							   }
 
-					           var filter = CrmDataHelper.MessageList
-						           .FirstOrDefault(messageQ => messageQ.EntityName == newStep.Entity
-						                                       && messageQ.MessageName == newStep.Message);
+							   var filter = CrmDataHelpers.MessageList
+								   .FirstOrDefault(messageQ => messageQ.EntityName == newStep.Entity
+									   && messageQ.MessageName == newStep.Message);
 
-					           newStep.FilterId = filter?.FilteredId ?? Guid.Empty;
+							   newStep.FilterId = filter?.FilteredId ?? Guid.Empty;
 
-					           var message = CrmDataHelper.MessageList
-						           .First(messageQ => messageQ.MessageName == newStep.Message);
+							   var message = CrmDataHelpers.MessageList
+								   .First(messageQ => messageQ.MessageName == newStep.Message);
 
-					           newStep.MessageId = message.MessageId;
+							   newStep.MessageId = message.MessageId;
 
 							   assemblyRegistration.CreateTypeStep(newStep);
 
-					           Dispatcher.Invoke(() => type.Children.Add(newStep));
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+							   Dispatcher.Invoke(() => type.Children.Add(newStep));
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ButtonEditStep_Click(object sender, RoutedEventArgs e)
 		{
-			var type = (CrmPluginType) ListPluginTypes.SelectedItem;
-			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
+			var type = (CrmPluginType)ListPluginTypes.SelectedItem;
+			var step = (CrmTypeStep)ListTypeSteps.SelectedItem;
 
 			var clone = step.Clone<CrmTypeStep>();
 
 			new Thread(() =>
-			           {
-				           try
-				           {
-					           if (!clone.IsUpdated)
-					           {
-						           UpdateStatus("Updating step info ...", true);
-						           // only basic info exists in the step when it is loaded through the type class
-								   clone.UpdateInfo(settings.ConnectionString);
-						           UpdateStatus("-- Finished updating step info.", false);
-					           }
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           UpdateStatus("", false);
-				           }
+					   {
+						   try
+						   {
+							   if (!clone.IsUpdated)
+							   {
+								   UpdateStatus("Updating step info ...", true);
+								   // only basic info exists in the step when it is loaded through the type class
+								   clone.UpdateInfo();
+								   UpdateStatus("-- Finished updating step info.", false);
+							   }
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   UpdateStatus("", false);
+						   }
 
-				           TypeStep dialogue = null;
+						   TypeStep dialogue = null;
 
-				           Dispatcher.Invoke(() =>
-				                             {
-												 dialogue = new TypeStep(clone, settings.ConnectionString);
-					                             dialogue.ShowDialog();
-				                             });
+						   Dispatcher.Invoke(() =>
+											 {
+												 dialogue = new TypeStep(clone, connectionManager);
+												 dialogue.ShowDialog();
+											 });
 
-				           try
-				           {
-					           if (!dialogue.IsUpdate)
-					           {
-						           return;
-					           }
+						   try
+						   {
+							   if (!dialogue.IsUpdate)
+							   {
+								   return;
+							   }
 
-					           var filter = CrmDataHelper.MessageList
-						           .FirstOrDefault(messageQ => messageQ.EntityName == clone.Entity
-						                                       && messageQ.MessageName == clone.Message);
+							   var filter = CrmDataHelpers.MessageList
+								   .FirstOrDefault(messageQ => messageQ.EntityName == clone.Entity
+									   && messageQ.MessageName == clone.Message);
 
-					           clone.FilterId = filter?.FilteredId ?? Guid.Empty;
+							   clone.FilterId = filter?.FilteredId ?? Guid.Empty;
 
-					           var message = CrmDataHelper.MessageList
-						           .First(messageQ => messageQ.MessageName == clone.Message);
+							   var message = CrmDataHelpers.MessageList
+								   .First(messageQ => messageQ.MessageName == clone.Message);
 
-					           clone.MessageId = message.MessageId;
+							   clone.MessageId = message.MessageId;
 
 							   assemblyRegistration.UpdateTypeStep(clone);
 
-					           Dispatcher.Invoke(() =>
-					                             {
-						                             type.Children.Remove(step);
-						                             type.Children.Add(clone);
-					                             });
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+							   Dispatcher.Invoke(() =>
+												 {
+													 type.Children.Remove(step);
+													 type.Children.Add(clone);
+												 });
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ButtonRemoveStep_Click(object sender, RoutedEventArgs e)
 		{
-			var type = (CrmPluginType) ListPluginTypes.SelectedItem;
+			var type = (CrmPluginType)ListPluginTypes.SelectedItem;
 			var steps = ListTypeSteps.SelectedItems.Cast<CrmTypeStep>().ToList();
 
 			var isConfirmed = DteHelper.IsConfirmed(
 				"Are you sure you want to DELETE steps(s):" +
-				$" {steps.Select(step => step.Name).Aggregate((step1Name, step2Name) => step1Name + ", " + step2Name)}?",
+					$" {steps.Select(step => step.Name).Aggregate((step1Name, step2Name) => step1Name + ", " + step2Name)}?",
 				"Step(s) Deletion");
 
 			if (!isConfirmed)
@@ -781,24 +818,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 
 			new Thread(() =>
-			           {
-				           try
-				           {
-					           steps.ForEach(step =>
-					                         {
+					   {
+						   try
+						   {
+							   steps.ForEach(step =>
+											 {
 												 assemblyRegistration.DeleteTypeStep(step.Id);
-						                         Dispatcher.Invoke(() => type.Children.Remove(step));
-					                         });
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+												 Dispatcher.Invoke(() => type.Children.Remove(step));
+											 });
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ButtonToggleStep_Click(object sender, RoutedEventArgs e)
@@ -806,27 +843,27 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			var steps = ListTypeSteps.SelectedItems.Cast<CrmTypeStep>().ToList();
 
 			new Thread(() =>
-			           {
-				           try
-				           {
-					           steps.ForEach(step =>
-					                         {
-						                         assemblyRegistration.SetTypeStepState(step.Id,
-							                         step.IsDisabled
-								                         ? SdkMessageProcessingStepState.Disabled
-								                         : SdkMessageProcessingStepState.Enabled);
-						                         step.IsDisabled = !step.IsDisabled;
-					                         });
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+					   {
+						   try
+						   {
+							   steps.ForEach(step =>
+											 {
+												 assemblyRegistration.SetTypeStepState(step.Id,
+													 step.IsDisabled
+														 ? SdkMessageProcessingStepState.Disabled
+														 : SdkMessageProcessingStepState.Enabled);
+												 step.IsDisabled = !step.IsDisabled;
+											 });
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ListTypeSteps_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -850,7 +887,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ListTypeSteps_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
+			var step = (CrmTypeStep)ListTypeSteps.SelectedItem;
 
 			new Thread(
 				() =>
@@ -865,7 +902,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 							try
 							{
 								UpdateStatus("Updating type step info ...", true);
-								step.UpdateInfo(settings.ConnectionString);
+								step.UpdateInfo();
 								UpdateStatus("-- Finished updating type step info.", false);
 							}
 							catch (Exception exception)
@@ -881,7 +918,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						IsAddImageAllowed =
 							(step.Message == "Create" && step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation)
 								|| (step.Message != "Create"
-									&& !string.IsNullOrEmpty(CrmDataHelper.GetMessagePropertyName(step.Message, step.Entity)));
+									&& !string.IsNullOrEmpty(CrmDataHelpers.GetMessagePropertyName(step.Message, step.Entity)));
 					}
 					else
 					{
@@ -899,8 +936,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ButtonAddImage_Click(object sender, RoutedEventArgs e)
 		{
-			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
-			var newImage = new CrmStepImage {Step = step};
+			var step = (CrmTypeStep)ListTypeSteps.SelectedItem;
+			var newImage = new CrmStepImage(connectionManager) { Step = step };
 
 			new Thread(
 				() =>
@@ -908,8 +945,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					try
 					{
 						UpdateStatus("Getting attribute list ...", true);
-						newImage.AttributeList = new ObservableCollection<string>(CrmDataHelper
-							.GetEntityFieldNames(step.Entity, settings.ConnectionString));
+						newImage.AttributeList = new ObservableCollection<string>(CrmDataHelpers
+							.GetEntityFieldNames(step.Entity, connectionManager));
 						UpdateStatus("-- Finished getting attribute list.", false);
 					}
 					catch (Exception exception)
@@ -950,75 +987,75 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ButtonEditImage_Click(object sender, RoutedEventArgs e)
 		{
-			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
-			var image = (CrmStepImage) ListStepImages.SelectedItem ?? new CrmStepImage();
+			var step = (CrmTypeStep)ListTypeSteps.SelectedItem;
+			var image = (CrmStepImage)ListStepImages.SelectedItem ?? new CrmStepImage(connectionManager);
 
 			new Thread(() =>
-			           {
-				           try
-				           {
-					           UpdateStatus("Getting attribute list ...", true);
-					           image.AttributeList = new ObservableCollection<string>(CrmDataHelper
-								   .GetEntityFieldNames(step.Entity, settings.ConnectionString));
-					           UpdateStatus("-- Finished getting attribute list.", false);
+					   {
+						   try
+						   {
+							   UpdateStatus("Getting attribute list ...", true);
+							   image.AttributeList = new ObservableCollection<string>(CrmDataHelpers
+								   .GetEntityFieldNames(step.Entity, connectionManager));
+							   UpdateStatus("-- Finished getting attribute list.", false);
 
-					           if (!image.IsUpdated)
-					           {
-						           UpdateStatus("Updating image info ...", true);
-						           // only basic info exists in the image when it is loaded through the step class
-								   image.UpdateInfo(settings.ConnectionString);
-						           UpdateStatus("-- Finished updating image info.", false);
-					           }
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           UpdateStatus("", false);
-				           }
+							   if (!image.IsUpdated)
+							   {
+								   UpdateStatus("Updating image info ...", true);
+								   // only basic info exists in the image when it is loaded through the step class
+								   image.UpdateInfo();
+								   UpdateStatus("-- Finished updating image info.", false);
+							   }
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   UpdateStatus("", false);
+						   }
 
-				           var clone = image.Clone<CrmStepImage>();
+						   var clone = image.Clone<CrmStepImage>();
 
-				           StepImage dialogue = null;
-				           Dispatcher.Invoke(() =>
-				                             {
+						   StepImage dialogue = null;
+						   Dispatcher.Invoke(() =>
+											 {
 												 dialogue = new StepImage(clone);
-					                             dialogue.ShowDialog();
-				                             });
+												 dialogue.ShowDialog();
+											 });
 
-				           try
-				           {
-					           if (dialogue.IsUpdate)
-					           {
+						   try
+						   {
+							   if (dialogue.IsUpdate)
+							   {
 								   assemblyRegistration.UpdateStepImage(clone);
-						           Dispatcher.Invoke(() =>
-						                             {
-							                             step.Children.Remove(image);
-							                             step.Children.Add(clone);
-						                             });
-					           }
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+								   Dispatcher.Invoke(() =>
+													 {
+														 step.Children.Remove(image);
+														 step.Children.Add(clone);
+													 });
+							   }
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ButtonRemoveImage_Click(object sender, RoutedEventArgs e)
 		{
-			var step = (CrmTypeStep) ListTypeSteps.SelectedItem;
+			var step = (CrmTypeStep)ListTypeSteps.SelectedItem;
 			var images = ListStepImages.SelectedItems.Cast<CrmStepImage>().ToList();
 
 			var isConfirmed = DteHelper.IsConfirmed(
 				"Are you sure you want to DELETE image(s):" +
-				$" {images.Select(image => image.Name).Aggregate((image1Name, image2Name) => image1Name + ", " + image2Name)}?",
+					$" {images.Select(image => image.Name).Aggregate((image1Name, image2Name) => image1Name + ", " + image2Name)}?",
 				"Image(s) Deletion");
 
 			if (!isConfirmed)
@@ -1027,24 +1064,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 
 			new Thread(() =>
-			           {
-				           try
-				           {
-					           images.ForEach(image =>
-					                          {
+					   {
+						   try
+						   {
+							   images.ForEach(image =>
+											  {
 												  assemblyRegistration.DeleteStepImage(image.Id);
-						                          Dispatcher.Invoke(() => step.Children.Remove(image));
-					                          });
-				           }
-				           catch (Exception exception)
-				           {
-					           PopException(exception);
-				           }
-				           finally
-				           {
-					           HideBusy();
-				           }
-			           }).Start();
+												  Dispatcher.Invoke(() => step.Children.Remove(image));
+											  });
+						   }
+						   catch (Exception exception)
+						   {
+							   PopException(exception);
+						   }
+						   finally
+						   {
+							   HideBusy();
+						   }
+					   }).Start();
 		}
 
 		private void ListStepImages_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -1068,7 +1105,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ListStepImages_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			IsStepImageSelected = (CrmStepImage) ListStepImages.SelectedItem != null;
+			IsStepImageSelected = (CrmStepImage)ListStepImages.SelectedItem != null;
 		}
 
 		#endregion
@@ -1091,7 +1128,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			settingsArray.SelectedSettingsIndex = settingsArray.SettingsList.IndexOf(newSettings);
 
 			DteHelper.ShowInfo("The profile chosen has been duplicated, and the duplicate is now the " +
-			                   "selected profile.", "Profile duplicated!");
+				"selected profile.", "Profile duplicated!");
 		}
 
 		private void ButtonDeleteSettings_Click(object sender, RoutedEventArgs e)
@@ -1172,7 +1209,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		private void SelectEntitiesByRegex(TextBox textBoxFilter, FilterControl control)
 		{
 			var text = textBoxFilter.Text.ToLower();
-			
+
 			// filter entities
 			new Thread(
 				() =>
@@ -1222,7 +1259,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			Dispatcher.Invoke(
 				() =>
 				{
-					var binding = new Binding
+					var binding =
+						new Binding
 								  {
 									  Source = source,
 									  Mode = BindingMode.OneWay,

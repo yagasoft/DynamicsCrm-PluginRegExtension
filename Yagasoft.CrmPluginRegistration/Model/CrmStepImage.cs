@@ -4,12 +4,13 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using CrmPluginEntities;
+using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
-using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
+using Yagasoft.CrmPluginRegistration.Connection;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Model
+namespace Yagasoft.CrmPluginRegistration.Model
 {
 	public class CrmStepImage : CrmEntityNonGeneric
 	{
@@ -161,7 +162,7 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		private CrmTypeStep step;
 
-		internal CrmTypeStep Step
+		public CrmTypeStep Step
 		{
 			get => step;
 			set
@@ -174,9 +175,12 @@ namespace CrmPluginRegExt.VSPackage.Model
 
 		#endregion
 
-		protected override void RunUpdateLogic(string connectionString)
+		public CrmStepImage(IConnectionManager connectionManager) : base(connectionManager)
+		{ }
+
+		protected override void RunUpdateLogic()
 		{
-			using (var context = new XrmServiceContext(GetConnection(connectionString)) {MergeOption = MergeOption.NoTracking})
+			using (var context = new XrmServiceContext(ConnectionManager.Get()) {MergeOption = MergeOption.NoTracking})
 			{
 				var result =
 					(from imageQ in context.SdkMessageProcessingStepImageSet

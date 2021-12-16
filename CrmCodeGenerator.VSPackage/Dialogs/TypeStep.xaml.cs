@@ -13,7 +13,9 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
-using CrmPluginRegExt.VSPackage.Model;
+using Yagasoft.CrmPluginRegistration.Connection;
+using Yagasoft.CrmPluginRegistration.Helpers;
+using Yagasoft.CrmPluginRegistration.Model;
 using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
 
 #endregion
@@ -25,9 +27,9 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	/// </summary>
 	public partial class TypeStep : INotifyPropertyChanged, IDataErrorInfo
 	{
-		private readonly string connectionString;
-
 		#region Properties
+
+		private readonly IConnectionManager connectionManager;
 
 		private ComboUser user;
 		private List<string> entityList;
@@ -384,9 +386,9 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		#region Init
 
-		public TypeStep(CrmTypeStep crmStep, string connectionString)
+		public TypeStep(CrmTypeStep crmStep, IConnectionManager connectionManager)
 		{
-			this.connectionString = connectionString;
+			this.connectionManager = connectionManager;
 			CrmStep = crmStep;
 
 			InitializeComponent();
@@ -402,10 +404,10 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					try
 					{
 						ShowBusy("Getting user list ...");
-						UserList = new List<ComboUser>(CrmDataHelper.GetUsers(connectionString));
+						UserList = new List<ComboUser>(CrmDataHelpers.GetUsers(connectionManager));
 
 						ShowBusy("Getting entity list ...");
-						EntityList = new List<string>(CrmDataHelper.GetEntityNames(connectionString));
+						EntityList = new List<string>(CrmDataHelpers.GetEntityNames(connectionManager));
 
 						User = CrmStep.UserId == Guid.Empty
 							? UserList.First()
@@ -510,7 +512,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				{
 					ShowBusy("Getting attribute list ...");
 					AttributeList = new ObservableCollection<string>(
-						CrmDataHelper.GetEntityFieldNames(entitySelected, connectionString));
+						CrmDataHelpers.GetEntityFieldNames(entitySelected, connectionManager));
 					AttributesSelectedString = CrmStep.Attributes;
 				}
 				catch (Exception exception)
@@ -545,7 +547,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						try
 						{
 							ShowBusy("Getting message list ...");
-							MessageList = new List<string>(CrmDataHelper.GetMessageNames(entitySelected, connectionString));
+							MessageList = new List<string>(CrmDataHelpers.GetMessageNames(entitySelected, connectionManager));
 
 							Dispatcher.Invoke(() => ComboBoxMessages.ItemsSource = MessageList);
 

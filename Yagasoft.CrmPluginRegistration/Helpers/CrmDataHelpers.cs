@@ -9,11 +9,11 @@ using Microsoft.Xrm.Sdk.Client;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata.Query;
 using Microsoft.Xrm.Sdk.Query;
-using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
+using Yagasoft.CrmPluginRegistration.Connection;
 
 #endregion
 
-namespace CrmPluginRegExt.VSPackage.Helpers
+namespace Yagasoft.CrmPluginRegistration.Helpers
 {
 	public sealed class ComboMessage
 	{
@@ -34,29 +34,29 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 		}
 	}
 
-	internal static class CrmDataHelper
+	public static class CrmDataHelpers
 	{
 		public static List<ComboMessage> MessageList = new List<ComboMessage>();
 		public static List<ComboUser> UserList = new List<ComboUser>();
-		public static IDictionary<string, List<string>> AttributeList = new ConcurrentDictionary<string, List<string>>();
+		public static readonly IDictionary<string, List<string>> AttributeList = new ConcurrentDictionary<string, List<string>>();
 
-		internal static List<string> GetEntityNames(string connectionString, bool cached = true)
+		public static List<string> GetEntityNames(IConnectionManager connectionManager, bool cached = true)
 		{
 			if (!MessageList.Any() || !cached)
 			{
-				RefreshMessageCache(connectionString);
+				RefreshMessageCache(connectionManager);
 			}
 
 			return MessageList.Select(message => message.EntityName).Distinct()
 				.OrderBy(name => name).ToList();
 		}
 
-		internal static List<string> GetMessageNames(string entityName, string connectionString,
+		public static List<string> GetMessageNames(string entityName, IConnectionManager connectionManager,
 			bool cached = true)
 		{
 			if (!MessageList.Any() || !cached)
 			{
-				RefreshMessageCache(connectionString);
+				RefreshMessageCache(connectionManager);
 			}
 
 			return MessageList.Where(message => entityName == "none" || message.EntityName == entityName)
@@ -64,7 +64,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 				.OrderBy(name => name).ToList();
 		}
 
-		internal static List<ComboUser> GetUsers(string connectionString, bool cached = true)
+		public static List<ComboUser> GetUsers(IConnectionManager connectionManager, bool cached = true)
 		{
 			if (UserList.Any() && cached)
 			{
@@ -82,7 +82,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 							   }
 						   };
 
-					using (var context = new XrmServiceContext(GetConnection(connectionString)) { MergeOption = MergeOption.NoTracking })
+					using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
 				{
 					UserList.AddRange(
 						(from user in context.SystemUserSet
@@ -98,7 +98,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			return UserList;
 		}
 
-		internal static List<string> GetEntityFieldNames(string entityName, string connectionString, bool cached = true)
+		public static List<string> GetEntityFieldNames(string entityName, IConnectionManager connectionManager, bool cached = true)
 		{
 			if (entityName == "none")
 			{
@@ -149,7 +149,7 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 														 ClientVersionStamp = null
 													 };
 
-				var attributeNames = ((RetrieveMetadataChangesResponse)GetConnection(connectionString).Execute(retrieveMetadataChangesRequest))
+				var attributeNames = ((RetrieveMetadataChangesResponse)connectionManager.Get().Execute(retrieveMetadataChangesRequest))
 					.EntityMetadata.First().Attributes
 					.Select(attribute => attribute.LogicalName).OrderBy(name => name).ToList();
 
@@ -159,9 +159,9 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			return AttributeList[entityName];
 		}
 
-		private static void RefreshMessageCache(string connectionString)
+		private static void RefreshMessageCache(IConnectionManager connectionManager)
 		{
-			using (var context = new XrmServiceContext(GetConnection(connectionString)) { MergeOption = MergeOption.NoTracking })
+			using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
 			{
 				MessageList =
 					(from message in context.SdkMessageSet
@@ -178,14 +178,14 @@ namespace CrmPluginRegExt.VSPackage.Helpers
 			}
 		}
 
-		internal static void ClearCache()
+		public static void ClearCache()
 		{
 			MessageList.Clear();
 			UserList.Clear();
 			AttributeList.Clear();
 		}
 
-		internal static string GetMessagePropertyName(string message, string entity = null)
+		public static string GetMessagePropertyName(string message, string entity = null)
 		{
 			switch (message)
 			{
