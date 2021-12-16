@@ -8,7 +8,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using CrmPluginEntities;
 using CrmPluginRegExt.AssemblyInfoLoader;
@@ -265,18 +264,10 @@ namespace Yagasoft.CrmPluginRegistration
 
 		private Guid _CreateAssembly(byte[] assemblyData, bool sandbox)
 		{
-			UpdateStatus($"Creating assembly (v{GetAssemblyVersion()}) ... ", 1);
-
 			var localVersion = GetAssemblyVersion();
-			UpdateStatus($"Local version: v{localVersion} ... ");
+			UpdateStatus($"Creating assembly (v{localVersion}) ... ", 1);
 
-			var matchingAssembly = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log)
-				.FirstOrDefault(
-					a =>
-					{
-						var version = a?.Version.IsFilled() == true ? new Version(a.Version) : null;
-						return version == localVersion;
-					});
+			var matchingAssembly = GetMatchingCrmAssembly(localVersion);
 			var matchingVersion = matchingAssembly?.Version;
 
 			if (matchingVersion != null)
@@ -303,13 +294,10 @@ namespace Yagasoft.CrmPluginRegistration
 				};
 
 			UpdateStatus("Saving new assembly to CRM ...");
-
 			Id = connectionManager.Get().Create(newAssembly);
-
 			AddNewTypes(GetExistingTypeNames(CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, Id)));
 
 			UpdateStatus("Finished creating assembly. ID => " + Id, -1);
-
 			OnRegActionTaken(RegistrationEvent.Create);
 
 			return Id;
@@ -319,233 +307,9 @@ namespace Yagasoft.CrmPluginRegistration
 		{
 			UpdateStatus("Updating assembly ... ", 1);
 
-			if (!isSkipUgrade)
+			if (!isSkipUgrade && UpgradeAssembly(assemblyData, ref sandbox))
 			{
-				var existingAssemblies = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log);
-
-				var oldestAssembly = existingAssemblies.FirstOrDefault();
-				var oldestVersion = oldestAssembly?.Version.IsFilled() == true ? new Version(oldestAssembly.Version) : null;
-				UpdateStatus($"Existing version: v{oldestVersion} ... ");
-
-				sandbox ??= (PluginAssembly.Enums.IsolationMode?)oldestAssembly?.IsolationMode.Value
-					== PluginAssembly.Enums.IsolationMode.Sandbox;
-
-				var newVersion = GetAssemblyVersion();
-				UpdateStatus($"New version: v{newVersion} ... ");
-
-				if (oldestVersion == null)
-				{
-					UpdateStatus($"Failed to find any assembly on CRM, creating instead ... ");
-					CreateAssembly(sandbox == true);
-					return;
-				}
-
-				if (newVersion.Major > oldestVersion.Major || newVersion.Minor > oldestVersion.Minor)
-				{
-					var message =
-						$@"Local assembly ({newVersion}) is an UPGRADE of the CRM assembly ({oldestVersion}).
-
-If you press 'yes':
-- A new assembly will be created
-
-- Plugins:
-  -- Existing steps will be moved to the new assembly
-
-- WF Custom Steps:
-  -- Existing WF XAML will be updated to reference the new new version
-  -- If out parameters were removed, it is HIGHLY recommended to remove all their references in the WFs first
-  -- Failing to do so, will cause 'possible' issues in those WFs
-  -- BE CAREFUL!
-
-- Finally, the old assembly will be deleted
-
-Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
-
-					if (feedback.IsConfirmed(message))
-					{
-						UpdateStatus("Upgrading assembly ... ");
-
-						UpdateStatus("Retrieving existing plugin steps ... ");
-						var existingSteps = CrmAssemblyHelpers
-							.GetCrmSteps(connectionManager, log, oldestAssembly.Id);
-						UpdateStatus($"Found: {existingSteps.Count}.");
-
-						IReadOnlyList<Workflow> existingWfs;
-
-						var existingAssemblyFullName = $"{oldestAssembly.Name}, Version={oldestAssembly.Version},"
-							+ $" Culture={oldestAssembly.Culture}, PublicKeyToken={oldestAssembly.PublicKeyToken}";
-
-						UpdateStatus("Retrieving existing WFs ... ");
-
-						using (var xrmContext = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
-						{
-							existingWfs =
-								(from wf in xrmContext.WorkflowSet
-								 where wf.Xaml.Contains(existingAssemblyFullName)
-									 && (wf.Type.Value == (int)Workflow.Enums.Type.Definition
-										 || wf.Type.Value == (int)Workflow.Enums.Type.Template)
-								 select
-									 new Workflow
-									 {
-										 WorkflowId = wf.WorkflowId,
-										 Name = wf.Name,
-										 Xaml = wf.Xaml,
-										 StateCode = wf.StateCode,
-										 StatusCode = wf.StatusCode
-									 }).ToArray();
-
-							UpdateStatus($"Found: {existingWfs.Count}.");
-						}
-
-						var oldId = oldestAssembly.Id;
-
-						var existingAssembly =
-							existingAssemblies
-								.FirstOrDefault(
-									a =>
-									{
-										var version = a?.Version.IsFilled() == true ? new Version(a.Version) : null;
-										return version == newVersion;
-									});
-
-						if (existingAssembly == null)
-						{
-							UpdateStatus($"Creating new assembly (v{newVersion}) ... ");
-							CreateAssembly(sandbox == true);
-						}
-						else
-						{
-							UpdateStatus($"Updating assembly (v{newVersion}) ... ");
-							Id = existingAssembly.Id;
-							_UpdateAssembly(assemblyData, sandbox, true);
-						}
-
-						var newId = Id;
-
-						if (existingSteps.Any())
-						{
-							UpdateStatus($"Moving steps from old assembly (v{oldestVersion}) to new one (v{newVersion}) ... ");
-
-							var newTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, newId);
-
-							foreach (var groupedSteps in existingSteps.GroupBy(s => s.EventHandler?.Name))
-							{
-								var typeName = groupedSteps.Key;
-
-								UpdateStatus($"Trying to find new ID for plugin type: {typeName} ... ", 1);
-								var newType = newTypes.FirstOrDefault(t => t.Name == typeName);
-
-								if (newType == null)
-								{
-									throw new Exception($"Unable to find the new ID for type: {typeName ?? "NULL"}.");
-								}
-
-								Parallel.ForEach(groupedSteps, new ParallelOptions { MaxDegreeOfParallelism = groupedSteps.Count() },
-									step =>
-									{
-										var service = connectionManager.Get();
-
-										UpdateStatus($"Moving step: {step.Id} ... ");
-										service.Update(
-											new SdkMessageProcessingStep
-											{
-												Id = step.Id,
-												EventHandler = newType.ToEntityReference()
-											});
-									});
-
-								UpdateStatus($"Finished moving steps of plugin type: {typeName}.", -1);
-							}
-						}
-
-						if (existingWfs.Any())
-						{
-							UpdateStatus($"Updating WF definitions to the new version ... ");
-
-							var newAssembly = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log).LastOrDefault();
-
-							if (newAssembly == null)
-							{
-								throw new Exception($"Cannot find the new assembly in CRM ({Id})");
-							}
-
-							var newAssemblyFullName = $"{newAssembly.Name}, Version={newAssembly.Version},"
-								+ $" Culture={newAssembly.Culture}, PublicKeyToken={newAssembly.PublicKeyToken}";
-
-							UpdateStatus($"Replacing '{existingAssemblyFullName}' with '{newAssemblyFullName}' ... ");
-
-							var activeWfs = existingWfs
-								.Where(w => w.StateCode == WorkflowState.Activated
-									&& (Workflow.Enums.StatusCode?)w.StatusCode?.Value == Workflow.Enums.StatusCode.Activated).ToArray();
-
-							if (activeWfs.Any())
-							{
-								var warning = $@"The following WFs are active, and they must be deactivated before the upgrade:
-- {activeWfs.Select(w => $"{w.Name} ({w.Id})").StringAggregate("\r\n- ")}";
-
-							message = $@"{warning}
-
-Do you want to deactivate (press 'yes') them before continuing, or exit (press 'no')?";
-
-							if (feedback.IsConfirmed(message))
-							{
-								UpdateStatus($"Deactivating WFs ... ");
-
-								Parallel.ForEach(activeWfs, new ParallelOptions { MaxDegreeOfParallelism = activeWfs.Length },
-									wf =>
-									{
-										var service = connectionManager.Get();
-
-										UpdateStatus($"Deactivating WF: {wf.Name} ({wf.Id}) ... ");
-										service.Update(
-											new Workflow
-											{
-												Id = wf.Id,
-												StateCode = WorkflowState.Draft,
-												StatusCode = Workflow.Enums.StatusCode.Draft.ToOptionSetValue()
-											});
-									});
-							}
-								else
-								{
-									OnRegActionTaken(RegistrationEvent.Abort);
-									return;
-								}
-							}
-
-							Parallel.ForEach(existingWfs, new ParallelOptions { MaxDegreeOfParallelism = existingWfs.Count },
-								wf =>
-								{
-									var service = connectionManager.Get();
-
-									UpdateStatus($"Updating WF: {wf.Name} ({wf.Id}) ... ");
-									service.Update(
-										new Workflow
-										{
-											Id = wf.Id,
-											Xaml = wf.Xaml.Replace(existingAssemblyFullName, newAssemblyFullName)
-										});
-								});
-
-							UpdateStatus($"Finished updating WF definitions.", -1);
-						}
-
-						UpdateStatus($"Deleting old assembly (v{oldestVersion}) ... ");
-						DeleteAssembly(oldId);
-
-						Id = newId;
-
-						UpdateStatus("Finished upgrading assembly.", -1);
-
-						OnRegActionTaken(RegistrationEvent.Update);
-					}
-					else
-					{
-						OnRegActionTaken(RegistrationEvent.Abort);
-					}
-
-					return;
-				}
+				return;
 			}
 
 			var existingTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, Id);
@@ -567,17 +331,233 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 			}
 
 			UpdateStatus("Updating assembly ... ");
-
 			connectionManager.Get().Update(updatedAssembly);
 
 			existingTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, Id);
 			var existingTypeNames = GetExistingTypeNames(existingTypes);
-
 			AddNewTypes(existingTypeNames);
 
 			UpdateStatus("Finished updating assembly.", -1);
-
 			OnRegActionTaken(RegistrationEvent.Update);
+		}
+
+		private bool UpgradeAssembly(byte[] assemblyData, ref bool? sandbox)
+		{
+			var existingAssemblies = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log);
+
+			var oldestAssembly = existingAssemblies.FirstOrDefault();
+			var oldestVersion = oldestAssembly?.Version.IsFilled() == true ? new Version(oldestAssembly.Version) : null;
+			UpdateStatus($"Existing version: v{oldestVersion} ... ");
+
+			sandbox ??= (PluginAssembly.Enums.IsolationMode?)oldestAssembly?.IsolationMode.Value
+				== PluginAssembly.Enums.IsolationMode.Sandbox;
+
+			var newVersion = GetAssemblyVersion();
+			UpdateStatus($"New version: v{newVersion} ... ");
+
+			if (oldestVersion == null)
+			{
+				UpdateStatus($"Failed to find any assembly on CRM, creating instead ... ");
+				CreateAssembly(sandbox == true);
+				return true;
+			}
+
+			if (newVersion.Major > oldestVersion.Major || newVersion.Minor > oldestVersion.Minor)
+			{
+				var message =
+					$@"Local assembly ({newVersion}) is an UPGRADE of the CRM assembly ({oldestVersion}).
+
+If you press 'yes':
+- A new assembly will be created
+
+- Plugins:
+  -- Existing steps will be moved to the new assembly
+
+- WF Custom Steps:
+  -- Existing WF XAML will be updated to reference the new new version
+  -- If out parameters were removed, it is HIGHLY recommended to remove all their references in the WFs first
+  -- Failing to do so, will cause 'possible' issues in those WFs
+  -- BE CAREFUL!
+
+- Finally, the old assembly will be deleted
+
+Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
+
+				if (feedback.IsConfirmed(message))
+				{
+					UpdateStatus("Upgrading assembly ... ");
+
+					UpdateStatus("Retrieving existing plugin steps ... ");
+					var existingSteps = CrmAssemblyHelpers
+						.GetCrmSteps(connectionManager, log, oldestAssembly.Id);
+					UpdateStatus($"Found: {existingSteps.Count}.");
+
+					var existingAssemblyFullName = $"{oldestAssembly.Name}, Version={oldestAssembly.Version},"
+						+ $" Culture={oldestAssembly.Culture}, PublicKeyToken={oldestAssembly.PublicKeyToken}";
+
+					var existingWfs = RetrieveExistingWfs(existingAssemblyFullName);
+
+					var oldId = oldestAssembly.Id;
+
+					var existingAssembly =
+						existingAssemblies
+							.FirstOrDefault(
+								a =>
+								{
+									var version = a?.Version.IsFilled() == true ? new Version(a.Version) : null;
+									return version == newVersion;
+								});
+
+					if (existingAssembly == null)
+					{
+						UpdateStatus($"Creating new assembly (v{newVersion}) ... ");
+						CreateAssembly(sandbox == true);
+					}
+					else
+					{
+						UpdateStatus($"Updating assembly (v{newVersion}) ... ");
+						Id = existingAssembly.Id;
+						_UpdateAssembly(assemblyData, sandbox, true);
+					}
+
+					var newId = Id;
+
+					if (existingSteps.Any())
+					{
+						UpdateStatus($"Moving steps from old assembly (v{oldestVersion}) to new one (v{newVersion}) ... ");
+						MovePluginSteps(newId, existingSteps);
+					}
+
+					if (existingWfs.Any() && UpgradeWfDefinitions(existingAssemblyFullName, existingWfs))
+					{
+						return true;
+					}
+
+					UpdateStatus($"Deleting old assembly (v{oldestVersion}) ... ");
+					DeleteAssembly(oldId);
+
+					Id = newId;
+
+					UpdateStatus("Finished upgrading assembly.", -1);
+					OnRegActionTaken(RegistrationEvent.Update);
+				}
+				else
+				{
+					OnRegActionTaken(RegistrationEvent.Abort);
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
+		private bool UpgradeWfDefinitions(string existingAssemblyFullName, IReadOnlyList<Workflow> existingWfs)
+		{
+			string message;
+			UpdateStatus($"Updating WF definitions to the new version ... ");
+
+			var newAssembly = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log).LastOrDefault();
+
+			if (newAssembly == null)
+			{
+				throw new Exception($"Cannot find the new assembly in CRM ({Id})");
+			}
+
+			var newAssemblyFullName = $"{newAssembly.Name}, Version={newAssembly.Version},"
+				+ $" Culture={newAssembly.Culture}, PublicKeyToken={newAssembly.PublicKeyToken}";
+
+			UpdateStatus($"Replacing '{existingAssemblyFullName}' with '{newAssemblyFullName}' ... ");
+
+			var activeWfs = existingWfs
+				.Where(w => w.StateCode == WorkflowState.Activated
+					&& (Workflow.Enums.StatusCode?)w.StatusCode?.Value == Workflow.Enums.StatusCode.Activated).ToArray();
+
+			if (activeWfs.Any())
+			{
+				var warning = $@"The following WFs are active, and they must be deactivated before the upgrade:
+- {activeWfs.Select(w => $"{w.Name} ({w.Id})").StringAggregate("\r\n- ")}";
+
+				message = $@"{warning}
+
+Do you want to deactivate (press 'yes') them before continuing, or exit (press 'no')?";
+
+				if (feedback.IsConfirmed(message))
+				{
+					UpdateStatus($"Deactivating WFs ... ");
+
+					Parallel.ForEach(activeWfs, new ParallelOptions { MaxDegreeOfParallelism = activeWfs.Length },
+						wf =>
+						{
+							var service = connectionManager.Get();
+
+							UpdateStatus($"Deactivating WF: {wf.Name} ({wf.Id}) ... ");
+							service.Update(
+								new Workflow
+								{
+									Id = wf.Id,
+									StateCode = WorkflowState.Draft,
+									StatusCode = Workflow.Enums.StatusCode.Draft.ToOptionSetValue()
+								});
+						});
+				}
+				else
+				{
+					OnRegActionTaken(RegistrationEvent.Abort);
+					return true;
+				}
+			}
+
+			Parallel.ForEach(existingWfs, new ParallelOptions { MaxDegreeOfParallelism = existingWfs.Count },
+				wf =>
+				{
+					var service = connectionManager.Get();
+
+					UpdateStatus($"Updating WF: {wf.Name} ({wf.Id}) ... ");
+					service.Update(
+						new Workflow
+						{
+							Id = wf.Id,
+							Xaml = wf.Xaml.Replace(existingAssemblyFullName, newAssemblyFullName)
+						});
+				});
+
+			UpdateStatus($"Finished updating WF definitions.", -1);
+			return false;
+		}
+
+		private void MovePluginSteps(Guid newId, IReadOnlyList<SdkMessageProcessingStep> existingSteps)
+		{
+			var newTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, newId);
+
+			foreach (var groupedSteps in existingSteps.GroupBy(s => s.EventHandler?.Name))
+			{
+				var typeName = groupedSteps.Key;
+
+				UpdateStatus($"Trying to find new ID for plugin type: {typeName} ... ", 1);
+				var newType = newTypes.FirstOrDefault(t => t.Name == typeName);
+
+				if (newType == null)
+				{
+					throw new Exception($"Unable to find the new ID for type: {typeName ?? "NULL"}.");
+				}
+
+				Parallel.ForEach(groupedSteps, new ParallelOptions { MaxDegreeOfParallelism = groupedSteps.Count() },
+					step =>
+					{
+						var service = connectionManager.Get();
+
+						UpdateStatus($"Moving step: {step.Id} ... ");
+						service.Update(
+							new SdkMessageProcessingStep
+							{
+								Id = step.Id,
+								EventHandler = newType.ToEntityReference()
+							});
+					});
+
+				UpdateStatus($"Finished moving steps of plugin type: {typeName}.", -1);
+			}
 		}
 
 		private void _DeleteAssembly()
@@ -648,12 +628,6 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 			}
 
 			UpdateStatus("Finished adding new types.", -1);
-		}
-
-		private IReadOnlyList<string> GetExistingTypeNames(IReadOnlyList<PluginType> existingTypes)
-		{
-			var existingTypeNames = existingTypes.Select(type => type.TypeName).ToList();
-			return existingTypeNames;
 		}
 
 		private void DeleteObsoleteTypes(IReadOnlyList<PluginType> existingTypes)
@@ -993,6 +967,52 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				});
 		}
 
+		private PluginAssembly GetMatchingCrmAssembly(Version localVersion)
+		{
+			var matchingAssembly = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log)
+				.FirstOrDefault(
+					a =>
+					{
+						var version = a?.Version.IsFilled() == true ? new Version(a.Version) : null;
+						return version == localVersion;
+					});
+			return matchingAssembly;
+		}
+
+		private IReadOnlyList<string> GetExistingTypeNames(IReadOnlyList<PluginType> existingTypes)
+		{
+			var existingTypeNames = existingTypes.Select(type => type.TypeName).ToList();
+			return existingTypeNames;
+		}
+
+		private IReadOnlyList<Workflow> RetrieveExistingWfs(string existingAssemblyFullName)
+		{
+			UpdateStatus("Retrieving existing WFs ... ");
+
+			using var xrmContext = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
+
+			var existingWfs =
+				(from wf in xrmContext.WorkflowSet
+				 where wf.Xaml.Contains(existingAssemblyFullName)
+					 && (wf.Type.Value == (int)Workflow.Enums.Type.Definition
+						 || wf.Type.Value == (int)Workflow.Enums.Type.Template)
+				 select
+					 new Workflow
+					 {
+						 WorkflowId = wf.WorkflowId,
+						 Name = wf.Name,
+						 Xaml = wf.Xaml,
+						 StateCode = wf.StateCode,
+						 StatusCode = wf.StatusCode
+					 }).ToArray();
+
+			UpdateStatus($"Found: {existingWfs.Length}.");
+
+			return existingWfs;
+		}
+
+		#region Assembly
+
 		private IReadOnlyList<string> GetClasses<TClassType>()
 		{
 			return AssemblyInfo.Classes
@@ -1025,5 +1045,7 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 		{
 			return File.ReadAllBytes(assemblyPath);
 		}
+
+		#endregion
 	}
 }
