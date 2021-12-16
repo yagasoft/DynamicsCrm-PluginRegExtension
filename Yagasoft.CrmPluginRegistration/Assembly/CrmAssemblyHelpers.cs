@@ -26,12 +26,15 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 				assembly =
 					(from assemblyQ in context.PluginAssemblySet
 					 where assemblyQ.Name == assemblyName
+					 orderby assemblyQ.Version descending
 					 select new PluginAssembly
 							{
 								Id = assemblyQ.Id,
 								Name = assemblyQ.Name,
 								IsolationMode = assemblyQ.IsolationMode,
-								Version = assemblyQ.Version
+								Version = assemblyQ.Version,
+								Culture = assemblyQ.Culture,
+								PublicKeyToken = assemblyQ.PublicKeyToken
 							}).FirstOrDefault();
 			}
 

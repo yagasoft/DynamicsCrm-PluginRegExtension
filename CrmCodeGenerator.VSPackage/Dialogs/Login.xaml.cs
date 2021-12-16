@@ -42,7 +42,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v3.1.1";
+		private const string WindowTitle = "Plugin Registration Extension v3.2.1";
 
 		private readonly ConnectionManager connectionManager;
 		private DefaultPluginRegLogger registrationLog;

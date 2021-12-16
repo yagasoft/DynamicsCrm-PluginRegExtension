@@ -60,6 +60,7 @@ A Visual Studio extension that reduces the hassle of using the official plugin t
 + Fixed: random range error
 + Removed: 'refresh' of WF steps, as it doesn't work in v9.1 (increment the assembly version instead)
 #### _v1.1.1 (2015-06-05)_
++ Initial release
 
 ---
 **Copyright &copy; by Ahmed Elsawalhy ([Yagasoft](http://yagasoft.com))** -- _GPL v3 Licence_
