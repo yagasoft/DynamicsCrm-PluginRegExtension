@@ -29,7 +29,6 @@ using Yagasoft.CrmPluginRegistration.Model;
 using Yagasoft.Libraries.Common;
 using Application = System.Windows.Forms.Application;
 using MultiSelectComboBoxClass = CrmCodeGenerator.Controls.MultiSelectComboBox;
-using Task = System.Threading.Tasks.Task;
 
 #endregion
 
@@ -269,7 +268,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			CheckContext(isClearCache);
 
 			crmAssembly.Clear();
-			Dispatcher.Invoke(() => TextBoxFilterType.Clear());
+			Dispatcher.InvokeAsync(() => TextBoxFilterType.Clear());
 
 			try
 			{
@@ -322,7 +321,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 								{
 									//UpdateStatus("-- Cancelled tool!", false);
 									StillOpen = false;
-									Dispatcher.Invoke(Close);
+									Dispatcher.InvokeAsync(Close);
 								}
 								break;
 
@@ -397,10 +396,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				(o, args) =>
 				{
 					ParseCrmAssembly();
-
-					// update UI
-					Dispatcher.Invoke(
-						() => { ListPluginTypes.ItemsSource = crmAssembly.Children; });
+					Dispatcher.InvokeAsync(() => { ListPluginTypes.ItemsSource = crmAssembly.Children; });
 				};
 
 			assemblyRegistration.RegLogEntryAdded +=
@@ -419,7 +415,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void PopException(Exception exception)
 		{
-			Dispatcher.Invoke(
+			Dispatcher.InvokeAsync(
 				() =>
 				{
 					var message = exception.Message
@@ -430,7 +426,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ShowBusy(string message)
 		{
-			Dispatcher.Invoke(
+			Dispatcher.InvokeAsync(
 				() =>
 				{
 					BusyIndicator.IsBusy = true;
@@ -441,7 +437,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void HideBusy()
 		{
-			Dispatcher.Invoke(
+			Dispatcher.InvokeAsync(
 				() =>
 				{
 					BusyIndicator.IsBusy = false;
@@ -464,7 +460,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 			if (!string.IsNullOrWhiteSpace(message))
 			{
-				Dispatcher.BeginInvoke(new Action(() => { Status.Update(message, newLine); }));
+				Dispatcher.InvokeAsync(() => Status.Update(message, newLine));
 			}
 
 			Application.DoEvents();
@@ -584,22 +580,23 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			if (DteHelper.IsConfirmed("Are you sure you want to UNregister this plugin?" +
 				" This means that the plugin and all its steps will be deleted!", "Unregistration"))
 			{
-				new Thread(() =>
-						   {
-							   try
-							   {
-								   assemblyRegistration.DeleteAssembly(assemblyRegistration.Id);
-								   crmAssembly.Clear();
-							   }
-							   catch (Exception exception)
-							   {
-								   PopException(exception);
-							   }
-							   finally
-							   {
-								   UpdateStatus("", false);
-							   }
-						   }).Start();
+				new Thread(
+					() =>
+					{
+						try
+						{
+							assemblyRegistration.DeleteAssembly(assemblyRegistration.Id);
+							crmAssembly.Clear();
+						}
+						catch (Exception exception)
+						{
+							PopException(exception);
+						}
+						finally
+						{
+							UpdateStatus("", false);
+						}
+					}).Start();
 			}
 		}
 
@@ -612,7 +609,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		{
 			if (e.Key == Key.Escape)
 			{
-				Dispatcher.Invoke(Close);
+				Dispatcher.InvokeAsync(Close);
 			}
 
 			base.OnKeyDown(e);
@@ -622,16 +619,17 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void ClearSelectionOnClickEmpty(object sender, MouseButtonEventArgs e)
 		{
-			Dispatcher.Invoke(() =>
-							  {
-								  var hitTestResult = VisualTreeHelper.HitTest((ListView)sender, e.GetPosition((ListView)sender));
-								  var controlType = hitTestResult.VisualHit.DependencyObjectType.SystemType;
+			Dispatcher.InvokeAsync(
+				() =>
+				{
+					var hitTestResult = VisualTreeHelper.HitTest((ListView)sender, e.GetPosition((ListView)sender));
+					var controlType = hitTestResult.VisualHit.DependencyObjectType.SystemType;
 
-								  if (controlType == typeof(ScrollViewer))
-								  {
-									  ((ListView)sender).SelectedItem = null;
-								  }
-							  });
+					if (controlType == typeof(ScrollViewer))
+					{
+						((ListView)sender).SelectedItem = null;
+					}
+				});
 		}
 
 		#region Types
@@ -667,7 +665,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					// update UI
 					UpdateListBindingToEntityChildren(type, ListTypeSteps);
 
-					Dispatcher.Invoke(() => TextBoxFilterStep.Clear());
+					Dispatcher.InvokeAsync(() => TextBoxFilterStep.Clear());
 				}).Start();
 		}
 
@@ -716,7 +714,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 							   assemblyRegistration.CreateTypeStep(newStep);
 
-							   Dispatcher.Invoke(() => type.Children.Add(newStep));
+							   Dispatcher.InvokeAsync(() => type.Children.Add(newStep));
 						   }
 						   catch (Exception exception)
 						   {
@@ -759,11 +757,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 						   TypeStep dialogue = null;
 
-						   Dispatcher.Invoke(() =>
-											 {
-												 dialogue = new TypeStep(clone, connectionManager);
-												 dialogue.ShowDialog();
-											 });
+						   Dispatcher.Invoke(
+							   () =>
+							   {
+								   dialogue = new TypeStep(clone, connectionManager);
+								   dialogue.ShowDialog();
+							   });
 
 						   try
 						   {
@@ -785,11 +784,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 							   assemblyRegistration.UpdateTypeStep(clone);
 
-							   Dispatcher.Invoke(() =>
-												 {
-													 type.Children.Remove(step);
-													 type.Children.Add(clone);
-												 });
+							   Dispatcher.InvokeAsync(
+								   () =>
+								   {
+									   type.Children.Remove(step);
+									   type.Children.Add(clone);
+								   });
 						   }
 						   catch (Exception exception)
 						   {
@@ -821,11 +821,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					   {
 						   try
 						   {
-							   steps.ForEach(step =>
-											 {
-												 assemblyRegistration.DeleteTypeStep(step.Id);
-												 Dispatcher.Invoke(() => type.Children.Remove(step));
-											 });
+							   steps.ForEach(
+								   step =>
+								   {
+									   assemblyRegistration.DeleteTypeStep(step.Id);
+									   Dispatcher.InvokeAsync(() => type.Children.Remove(step));
+								   });
 						   }
 						   catch (Exception exception)
 						   {
@@ -971,7 +972,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						if (dialogue.IsUpdate)
 						{
 							assemblyRegistration.CreateStepImage(newImage);
-							Dispatcher.Invoke(() => step.Children.Add(newImage));
+							Dispatcher.InvokeAsync(() => step.Children.Add(newImage));
 						}
 					}
 					catch (Exception exception)
@@ -1019,22 +1020,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						   var clone = image.Clone<CrmStepImage>();
 
 						   StepImage dialogue = null;
-						   Dispatcher.Invoke(() =>
-											 {
-												 dialogue = new StepImage(clone);
-												 dialogue.ShowDialog();
-											 });
+						   Dispatcher.Invoke(
+							   () =>
+							   {
+								   dialogue = new StepImage(clone);
+								   dialogue.ShowDialog();
+							   });
 
 						   try
 						   {
 							   if (dialogue.IsUpdate)
 							   {
 								   assemblyRegistration.UpdateStepImage(clone);
-								   Dispatcher.Invoke(() =>
-													 {
-														 step.Children.Remove(image);
-														 step.Children.Add(clone);
-													 });
+								   Dispatcher.InvokeAsync(
+									   () =>
+									   {
+										   step.Children.Remove(image);
+										   step.Children.Add(clone);
+									   });
 							   }
 						   }
 						   catch (Exception exception)
@@ -1070,7 +1073,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 							   images.ForEach(image =>
 											  {
 												  assemblyRegistration.DeleteStepImage(image.Id);
-												  Dispatcher.Invoke(() => step.Children.Remove(image));
+												  Dispatcher.InvokeAsync(() => step.Children.Remove(image));
 											  });
 						   }
 						   catch (Exception exception)
@@ -1221,18 +1224,18 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						switch (control)
 						{
 							case FilterControl.Type:
-								Dispatcher.Invoke(() => crmAssembly.Filter(text));
+								Dispatcher.InvokeAsync(() => crmAssembly.Filter(text));
 								break;
 
 							case FilterControl.Step:
-								Dispatcher.Invoke(() => ((CrmPluginType)ListPluginTypes.SelectedItem)?.Filter(text));
+								Dispatcher.InvokeAsync(() => ((CrmPluginType)ListPluginTypes.SelectedItem)?.Filter(text));
 								break;
 
 							default:
 								throw new ArgumentOutOfRangeException(nameof(control), control, null);
 						}
 
-						Dispatcher.Invoke(textBoxFilter.Focus);
+						Dispatcher.InvokeAsync(textBoxFilter.Focus);
 
 						HideBusy();
 					}
@@ -1261,11 +1264,11 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				{
 					var binding =
 						new Binding
-								  {
-									  Source = source,
-									  Mode = BindingMode.OneWay,
-									  Path = new PropertyPath("Children")
-								  };
+						{
+							Source = source,
+							Mode = BindingMode.OneWay,
+							Path = new PropertyPath("Children")
+						};
 
 					listView.SetBinding(ItemsControl.ItemsSourceProperty, binding);
 				});

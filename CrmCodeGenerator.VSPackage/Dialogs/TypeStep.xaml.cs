@@ -1,7 +1,6 @@
 ﻿#region Imports
 
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -12,11 +11,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
 using CrmPluginEntities;
-using CrmPluginRegExt.VSPackage.Helpers;
 using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.CrmPluginRegistration.Helpers;
 using Yagasoft.CrmPluginRegistration.Model;
-using static CrmPluginRegExt.VSPackage.Helpers.ConnectionHelper;
+using Yagasoft.Libraries.Common;
 
 #endregion
 
@@ -31,15 +29,16 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private readonly IConnectionManager connectionManager;
 
-		private ComboUser user;
-		private List<string> entityList;
-		private List<string> messageList;
-		private List<ComboUser> userList;
-		private ObservableCollection<string> attributeList = new ObservableCollection<string>();
-		private ObservableCollection<string> attributesSelected = new ObservableCollection<string>();
+		private string entityOnOpen;
+		private string messageOnOpen;
 
-		public bool IsInitEntity { get; set; }
-		public bool IsInitMessage { get; set; }
+		private ComboUser user;
+		private ObservableCollection<string> entityList;
+		private ObservableCollection<ComboUser> userList;
+		private ObservableCollection<string> messageList;
+		private ObservableCollection<string> attributeList;
+		private ObservableCollection<string> attributesSelected;
+
 		public bool IsUpdate { get; set; }
 		public CrmTypeStep CrmStep { get; set; }
 
@@ -53,7 +52,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
-		public List<string> EntityList
+		public ObservableCollection<string> EntityList
 		{
 			get => entityList;
 			set
@@ -63,7 +62,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
-		public List<string> MessageList
+		public ObservableCollection<string> MessageList
 		{
 			get => messageList;
 			set
@@ -73,7 +72,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 		}
 
-		public List<ComboUser> UserList
+		public ObservableCollection<ComboUser> UserList
 		{
 			get => userList;
 			set
@@ -89,6 +88,13 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			set
 			{
 				CrmStep.Entity = value;
+				Dispatcher.Invoke(() => ComboBoxMessages.IsEnabled = value.IsFilled());
+
+				if (Dispatcher.Invoke(() => ComboBoxEntities.IsDropDownOpen))
+				{
+					return;
+				}
+
 				OnPropertyChanged("Entity");
 			}
 		}
@@ -99,6 +105,13 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			set
 			{
 				CrmStep.Message = value;
+				Dispatcher.Invoke(() => Attributes.IsEnabled = value == "Update");
+
+				if (Dispatcher.Invoke(() => ComboBoxMessages.IsDropDownOpen))
+				{
+					return;
+				}
+
 				OnPropertyChanged("Message");
 			}
 		}
@@ -128,6 +141,11 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			get => user;
 			set
 			{
+				if (Dispatcher.Invoke(() => ComboBoxUsers.IsDropDownOpen))
+				{
+					return;
+				}
+
 				user = value;
 				CrmStep.UserId = user.Id;
 				OnPropertyChanged("User");
@@ -315,12 +333,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		{
 			get
 			{
-				if (!IsInitEntity || !IsInitMessage)
-				{
-					return CrmStep.Attributes;
-				}
-
-				if (AttributesSelected.Count == AttributeList.Count)
+				if (AttributeList == null || AttributesSelected == null || AttributesSelected.Count == AttributeList.Count)
 				{
 					return "";
 				}
@@ -340,11 +353,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			}
 			set
 			{
-				if (!IsInitEntity || !IsInitMessage)
-				{
-					value = CrmStep.Attributes;
-				}
-
 				// if the string is empty, then all attributes are selected!
 				if (string.IsNullOrEmpty(value))
 				{
@@ -367,9 +375,6 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				OnPropertyChanged("AttributesSelectedString");
 			}
 		}
-
-		private bool entityChanged;
-		private bool messageChanged;
 
 		#endregion
 
@@ -404,18 +409,21 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 					try
 					{
 						ShowBusy("Getting user list ...");
-						UserList = new List<ComboUser>(CrmDataHelpers.GetUsers(connectionManager));
+						UserList = new ObservableCollection<ComboUser>(CrmDataHelpers.GetUsers(connectionManager));
 
 						ShowBusy("Getting entity list ...");
-						EntityList = new List<string>(CrmDataHelpers.GetEntityNames(connectionManager));
+						EntityList = new ObservableCollection<string>(CrmDataHelpers.GetEntityNames(connectionManager));
+
+						if (Entity.IsFilled())
+						{
+							ShowBusy("Getting message list ...");
+							MessageList = new ObservableCollection<string>(CrmDataHelpers.GetMessageNames(Entity, connectionManager));
+							LoadAttributes();
+						}
 
 						User = CrmStep.UserId == Guid.Empty
 							? UserList.First()
 							: UserList.First(userQ => userQ.Id == CrmStep.UserId);
-
-						Entity = string.IsNullOrEmpty(Entity) ? "none" : Entity;
-
-						Dispatcher.Invoke(() => ComboBoxEntities.Focus());
 					}
 					catch (Exception exception)
 					{
@@ -431,6 +439,34 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 		#endregion
 
 		#region UI Events
+
+		private void ComboBoxEntities_OnDropDownOpened(object sender, EventArgs e)
+		{
+			entityOnOpen = Entity;
+		}
+
+		private void ComboBoxEntities_OnDropDownClosed(object sender, EventArgs e)
+		{
+			if (entityOnOpen != Entity)
+			{
+				OnPropertyChanged("Entity");
+				ProcessEntityChange();
+			}
+		}
+
+		private void ComboBoxMessages_OnDropDownOpened(object sender, EventArgs e)
+		{
+			messageOnOpen = Message;
+		}
+
+		private void ComboBoxMessages_OnDropDownClosed(object sender, EventArgs e)
+		{
+			if (messageOnOpen != Message)
+			{
+				OnPropertyChanged("Message");
+				ProcessMessageChange();
+			}
+		}
 
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
@@ -462,57 +498,18 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			base.OnKeyDown(e);
 		}
 
-		private void ComboBoxEntities_CbSelectionChanged(object sender, SelectionChangedEventArgs e)
-		{
-			entityChanged = true;
-
-			if (!IsInitEntity)
-			{
-				ProcessEntityChange();
-			}
-		}
-
-		private void ComboBoxEntities_OnPreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-		{
-			ProcessEntityChange();
-		}
-
-		private void ComboBoxMessages_SelectionChanged(object sender, SelectionChangedEventArgs e)
-		{
-			messageChanged = true;
-
-			if (!IsInitMessage)
-			{
-				ProcessMessageChange();
-			}
-		}
-
-		private void ComboBoxMessages_OnPreviewLostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
-		{
-			ProcessMessageChange();
-		}
-
 		#endregion
 
 		private void LoadAttributes()
 		{
-			string entitySelected = null;
-			string messageSelected = null;
-
-			Dispatcher.Invoke(
-				() =>
-							  {
-								  entitySelected = (string)ComboBoxEntities.SelectedItem;
-								  messageSelected = (string)ComboBoxMessages.SelectedItem;
-							  });
-
-			if (messageSelected == "Update")
+			if (Message == "Update")
 			{
+				ShowBusy("Getting attribute list ...");
+
 				try
 				{
-					ShowBusy("Getting attribute list ...");
 					AttributeList = new ObservableCollection<string>(
-						CrmDataHelpers.GetEntityFieldNames(entitySelected, connectionManager));
+						CrmDataHelpers.GetEntityFieldNames(Entity, connectionManager));
 					AttributesSelectedString = CrmStep.Attributes;
 				}
 				catch (Exception exception)
@@ -527,65 +524,42 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 			else
 			{
 				AttributesSelectedString = null;
+				AttributeList = new ObservableCollection<string>();
+				Dispatcher.Invoke(() => Attributes.DefaultText = null);
 			}
 		}
 
 		private void ProcessEntityChange()
 		{
-			if (!entityChanged)
-			{
-				return;
-			}
-
-			var entitySelected = (string)ComboBoxEntities.SelectedItem;
+			ShowBusy("Getting message list ...");
 
 			new Thread(
 				() =>
 				{
-					if (!string.IsNullOrEmpty(entitySelected))
+					try
 					{
-						try
+						if (string.IsNullOrEmpty(Entity))
 						{
-							ShowBusy("Getting message list ...");
-							MessageList = new List<string>(CrmDataHelpers.GetMessageNames(entitySelected, connectionManager));
+							return;
+						}
 
-							Dispatcher.Invoke(() => ComboBoxMessages.ItemsSource = MessageList);
-
-							IsInitEntity = true;
-						}
-						catch (Exception exception)
-						{
-							PopException(exception);
-						}
-						finally
-						{
-							HideBusy();
-						}
+						MessageList = new ObservableCollection<string>(CrmDataHelpers.GetMessageNames(Entity, connectionManager));
+						Dispatcher.InvokeAsync(() => ComboBoxMessages.ItemsSource = MessageList);
 					}
-
-					entityChanged = false;
+					catch (Exception exception)
+					{
+						PopException(exception);
+					}
+					finally
+					{
+						HideBusy();
+					}
 				}).Start();
 		}
 
 		private void ProcessMessageChange()
 		{
-			if (!messageChanged)
-			{
-				return;
-			}
-
-			var messageSelected = (string)ComboBoxMessages.SelectedItem;
-
-			Attributes.IsEnabled = messageSelected == "Update";
-
-			new Thread(
-				() =>
-				{
-					IsInitMessage = true;
-					messageChanged = false;
-
-					LoadAttributes();
-				}).Start();
+			new Thread(LoadAttributes).Start();
 		}
 
 		private void UpdateStepName()
@@ -642,36 +616,39 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void PopException(Exception exception)
 		{
-			Dispatcher.Invoke(() =>
-							  {
-								  var message = exception.Message
-									  + (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
-								  MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
-							  });
+			Dispatcher.InvokeAsync(
+				() =>
+				{
+					var message = exception.Message
+						+ (exception.InnerException != null ? "\n" + exception.InnerException.Message : "");
+					MessageBox.Show(message, exception.GetType().FullName, MessageBoxButton.OK, MessageBoxImage.Error);
+				});
 		}
 
 		private void PopAlert(string title, string message, MessageBoxImage severity)
 		{
-			Dispatcher.Invoke(() => { MessageBox.Show(message, title, MessageBoxButton.OK, severity); });
+			Dispatcher.InvokeAsync(() => { MessageBox.Show(message, title, MessageBoxButton.OK, severity); });
 		}
 
 		private void ShowBusy(string message)
 		{
-			Dispatcher.Invoke(() =>
-							  {
-								  BusyIndicator.IsBusy = true;
-								  BusyIndicator.BusyContent =
-									  string.IsNullOrEmpty(message) ? "Please wait ..." : message;
-							  }, DispatcherPriority.Send);
+			Dispatcher.InvokeAsync(
+				() =>
+				{
+					BusyIndicator.IsBusy = true;
+					BusyIndicator.BusyContent =
+						string.IsNullOrEmpty(message) ? "Please wait ..." : message;
+				}, DispatcherPriority.Send);
 		}
 
 		private void HideBusy()
 		{
-			Dispatcher.Invoke(() =>
-							  {
-								  BusyIndicator.IsBusy = false;
-								  BusyIndicator.BusyContent = "Please wait ...";
-							  }, DispatcherPriority.Send);
+			Dispatcher.InvokeAsync(
+				() =>
+				{
+					BusyIndicator.IsBusy = false;
+					BusyIndicator.BusyContent = "Please wait ...";
+				}, DispatcherPriority.Send);
 		}
 
 		#endregion
@@ -706,7 +683,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				switch (columnName)
 				{
 					case "Name":
-						if (string.IsNullOrEmpty(Name))
+						if (Name.IsEmpty())
 						{
 							return "'Name' is required!";
 						}
@@ -714,7 +691,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 					case "Entity":
 					case "Message":
-						if (string.IsNullOrEmpty((string)GetType().GetProperty(columnName).GetValue(this)))
+						if (((string)GetType().GetProperty(columnName)?.GetValue(this)).IsEmpty())
 						{
 							return "'" + columnName + "' is required!";
 						}
@@ -731,11 +708,11 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 				}
 
 				// no errors
-				return null;
+				return string.Empty;
 			}
 		}
 
-		public string Error => null;
+		public string Error => string.Empty;
 
 		#endregion
 	}

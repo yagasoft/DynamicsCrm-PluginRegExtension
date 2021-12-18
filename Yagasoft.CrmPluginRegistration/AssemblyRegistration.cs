@@ -452,6 +452,41 @@ Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
 			return false;
 		}
 
+		private void MovePluginSteps(Guid newId, IReadOnlyList<SdkMessageProcessingStep> existingSteps)
+		{
+			var newTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, newId);
+
+			foreach (var groupedSteps in existingSteps.GroupBy(s => s.EventHandler?.Name))
+			{
+				var typeName = groupedSteps.Key;
+
+				UpdateStatus($"Trying to find new ID for plugin type: {typeName} ... ", 1);
+				var newType = newTypes.FirstOrDefault(t => t.Name == typeName);
+
+				if (newType == null)
+				{
+					UpdateStatus($"Unable to find the new ID for type: {typeName ?? "NULL"}.", -1);
+					continue;
+				}
+
+				Parallel.ForEach(groupedSteps, new ParallelOptions { MaxDegreeOfParallelism = groupedSteps.Count() },
+					step =>
+					{
+						var service = connectionManager.Get();
+
+						UpdateStatus($"Moving step: {step.Id} ... ");
+						service.Update(
+							new SdkMessageProcessingStep
+							{
+								Id = step.Id,
+								EventHandler = newType.ToEntityReference()
+							});
+					});
+
+				UpdateStatus($"Finished moving steps of plugin type: {typeName}.", -1);
+			}
+		}
+
 		private bool UpgradeWfDefinitions(string existingAssemblyFullName, IReadOnlyList<Workflow> existingWfs)
 		{
 			string message;
@@ -467,7 +502,7 @@ Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
 			var newAssemblyFullName = $"{newAssembly.Name}, Version={newAssembly.Version},"
 				+ $" Culture={newAssembly.Culture}, PublicKeyToken={newAssembly.PublicKeyToken}";
 
-			UpdateStatus($"Replacing '{existingAssemblyFullName}' with '{newAssemblyFullName}' ... ");
+			UpdateStatus($"Replacing '{existingAssemblyFullName}' with '{newAssemblyFullName}' ... ", 1);
 
 			var activeWfs = existingWfs
 				.Where(w => w.StateCode == WorkflowState.Activated
@@ -524,40 +559,6 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 
 			UpdateStatus($"Finished updating WF definitions.", -1);
 			return false;
-		}
-
-		private void MovePluginSteps(Guid newId, IReadOnlyList<SdkMessageProcessingStep> existingSteps)
-		{
-			var newTypes = CrmAssemblyHelpers.GetCrmTypes(connectionManager, log, newId);
-
-			foreach (var groupedSteps in existingSteps.GroupBy(s => s.EventHandler?.Name))
-			{
-				var typeName = groupedSteps.Key;
-
-				UpdateStatus($"Trying to find new ID for plugin type: {typeName} ... ", 1);
-				var newType = newTypes.FirstOrDefault(t => t.Name == typeName);
-
-				if (newType == null)
-				{
-					throw new Exception($"Unable to find the new ID for type: {typeName ?? "NULL"}.");
-				}
-
-				Parallel.ForEach(groupedSteps, new ParallelOptions { MaxDegreeOfParallelism = groupedSteps.Count() },
-					step =>
-					{
-						var service = connectionManager.Get();
-
-						UpdateStatus($"Moving step: {step.Id} ... ");
-						service.Update(
-							new SdkMessageProcessingStep
-							{
-								Id = step.Id,
-								EventHandler = newType.ToEntityReference()
-							});
-					});
-
-				UpdateStatus($"Finished moving steps of plugin type: {typeName}.", -1);
-			}
 		}
 
 		private void _DeleteAssembly()

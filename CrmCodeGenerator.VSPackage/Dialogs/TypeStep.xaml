@@ -4,12 +4,13 @@
         xmlns:control="clr-namespace:CrmCodeGenerator.Controls;assembly=CrmCodeGenerator.Controls"
         xmlns:converter="clr-namespace:CrmPluginRegExt.VSPackage.Dialogs.Converters"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:vsPackage="clr-namespace:CrmPluginRegExt.VSPackage"
-                 mc:Ignorable="d"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vsPackage="clr-namespace:CrmPluginRegExt.VSPackage"
+        mc:Ignorable="d"
         Title="Type Step" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen"
-                 ResizeMode="NoResize" ShowInTaskbar="True" ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                 d:DesignWidth="850" Loaded="DialogWindow_Loaded" d:DesignHeight="451">
+        ResizeMode="NoResize" ShowInTaskbar="True" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+        d:DesignWidth="850" Loaded="DialogWindow_Loaded" d:DesignHeight="451">
     <xctk:BusyIndicator x:Name="BusyIndicator">
         <Grid Margin="5">
             <Grid.ColumnDefinitions>
@@ -32,27 +33,41 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Label Grid.Row="0" Grid.Column="0" Content="Entity" Margin="2"/>
-                    <vsPackage:FilteredComboBox Grid.Row="0" Grid.Column="1" x:Name="ComboBoxEntities" Margin="2"
-                                                SelectionChanged="ComboBoxEntities_CbSelectionChanged" PreviewLostKeyboardFocus="ComboBoxEntities_OnPreviewLostKeyboardFocus"
-                                                IsEditable="True" IsTextSearchEnabled="True"
-                                                 ItemsSource="{Binding EntityList}" SelectedItem="{Binding Entity, ValidatesOnDataErrors=True}"/>
-                    <Label Grid.Row="1" Grid.Column="0" Content="Message" Margin="2"/>
-                    <vsPackage:FilteredComboBox Grid.Row="1" Grid.Column="1" x:Name="ComboBoxMessages" Margin="2" IsEditable="True" IsTextSearchEnabled="True"
-                                                SelectionChanged="ComboBoxMessages_SelectionChanged"  PreviewLostKeyboardFocus="ComboBoxMessages_OnPreviewLostKeyboardFocus"
-                                                 ItemsSource="{Binding MessageList}" SelectedItem="{Binding Message, ValidatesOnDataErrors=True}" />
-                    <Label Grid.Row="2" Grid.Column="0" Content="Filtering Attributes" Margin="2"/>
-                    <control:MultiSelectComboBox Grid.Row="2" Grid.Column="1" x:Name="Attributes" ItemsSource="{Binding AttributeList, Mode=TwoWay}"
-                                                 SelectedItems="{Binding AttributesSelected, Mode=TwoWay}" Margin="2"/>
-                    <Label Grid.Row="3" Grid.Column="0" Content="Name" Margin="2"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Margin="2" Text="{Binding StepName, ValidatesOnDataErrors=True}" IsEnabled="False"/>
-                    <Label Grid.Row="4" Grid.Column="0" Content="Context User" Margin="2"/>
-                    <vsPackage:FilteredComboBox Grid.Row="4" Grid.Column="1" x:Name="ComboBoxUsers" Margin="2" IsEditable="True" IsTextSearchEnabled="True"
-                                                ItemsSource="{Binding UserList}" SelectedItem="{Binding User, ValidatesOnDataErrors=True}"/>
-                    <Label Grid.Row="5" Grid.Column="0" Content="Execution Order" Margin="2"/>
-                    <TextBox Grid.Row="5" x:Name="TextBoxExecutionOrder" Grid.Column="1" Margin="2" Text="{Binding ExecutionOrder, ValidatesOnDataErrors=True}"/>
-                    <Label Grid.Row="6" Grid.Column="0" Content="Description" Margin="2"/>
-                    <TextBox Grid.Row="6" Grid.Column="1" Margin="2" Text="{Binding Description}"/>
+                    <Label Grid.Row="0" Grid.Column="0" Content="Entity" Margin="2" />
+                    <vsPackage:FilteredComboBox
+                        Grid.Row="0" Grid.Column="1" x:Name="ComboBoxEntities" Margin="2"
+                        DropDownOpened="ComboBoxEntities_OnDropDownOpened"
+                        DropDownClosed="ComboBoxEntities_OnDropDownClosed"
+                        IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                        ItemsSource="{Binding EntityList}"
+                        SelectedItem="{Binding Entity, ValidatesOnDataErrors=True}" />
+                    <Label Grid.Row="1" Grid.Column="0" Content="Message" Margin="2" />
+                    <vsPackage:FilteredComboBox
+                        Grid.Row="1" Grid.Column="1" x:Name="ComboBoxMessages" Margin="2"
+                        IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                        DropDownOpened="ComboBoxMessages_OnDropDownOpened"
+                        DropDownClosed="ComboBoxMessages_OnDropDownClosed"
+                        ItemsSource="{Binding MessageList}"
+                        SelectedItem="{Binding Message, ValidatesOnDataErrors=True}" />
+                    <Label Grid.Row="2" Grid.Column="0" Content="Filtering Attributes" Margin="2" />
+                    <control:MultiSelectComboBox
+                        Grid.Row="2" Grid.Column="1" x:Name="Attributes"
+                        ItemsSource="{Binding AttributeList, Mode=TwoWay}"
+                        SelectedItems="{Binding AttributesSelected, Mode=TwoWay}" Margin="2" />
+                    <Label Grid.Row="3" Grid.Column="0" Content="Name" Margin="2" />
+                    <TextBox Grid.Row="3" Grid.Column="1" Margin="2"
+                             Text="{Binding StepName, ValidatesOnDataErrors=True}" IsEnabled="False" />
+                    <Label Grid.Row="4" Grid.Column="0" Content="Context User" Margin="2" />
+                    <vsPackage:FilteredComboBox
+                        Grid.Row="4" Grid.Column="1" x:Name="ComboBoxUsers" Margin="2"
+                        IsEditable="True" IsTextSearchEnabled="False" StaysOpenOnEdit="True"
+                        ItemsSource="{Binding UserList}"
+                        SelectedItem="{Binding User, ValidatesOnDataErrors=True}" />
+                    <Label Grid.Row="5" Grid.Column="0" Content="Execution Order" Margin="2" />
+                    <TextBox Grid.Row="5" x:Name="TextBoxExecutionOrder" Grid.Column="1" Margin="2"
+                             Text="{Binding ExecutionOrder, ValidatesOnDataErrors=True}" />
+                    <Label Grid.Row="6" Grid.Column="0" Content="Description" Margin="2" />
+                    <TextBox Grid.Row="6" Grid.Column="1" Margin="2" Text="{Binding Description}" />
                 </Grid>
                 <Grid Margin="2">
                     <Grid.ColumnDefinitions>
@@ -66,39 +81,47 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Label Grid.Row="0" Grid.Column="0" Content="Stage" Margin="0" FontWeight="Bold"/>
-                    <RadioButton Grid.Row="1" Grid.Column="0" x:Name="RadioButtonPreValidation" Content="Pre-validation" GroupName="StageGroup" Margin="5"
-                                 IsChecked="{Binding IsPreValidation}"/>
-                    <RadioButton Grid.Row="2" Grid.Column="0" x:Name="RadioButtonPreOperation" Content="Pre-operation" GroupName="StageGroup" Margin="5"
-                                 IsChecked="{Binding IsPreOperation}"/>
-                    <RadioButton Grid.Row="3" Grid.Column="0" x:Name="RadioButtonPostOperation" Content="Post-operation" GroupName="StageGroup" Margin="5"
-                                 IsChecked="{Binding IsPostOperation}"/>
-                    <Label Grid.Row="0" Grid.Column="1" Content="Mode" FontWeight="Bold"/>
-                    <RadioButton Grid.Row="1" Grid.Column="1" x:Name="RadioButtonAsync" Content="Asynchronous" GroupName="ModeGroup" Margin="5"
-                                 IsChecked="{Binding IsAsync}" IsEnabled="{Binding IsAsyncEnabled}"/>
-                    <RadioButton Grid.Row="2" Grid.Column="1" x:Name="RadioButtonSync" Content="Synchronous" GroupName="ModeGroup" Margin="5"
-                                 IsChecked="{Binding IsSync}" IsEnabled="{Binding IsAsyncEnabled}"/>
-                    <Label Grid.Row="0" Grid.Column="2" Content="Deployment" FontWeight="Bold"/>
-                    <CheckBox Grid.Row="1" Grid.Column="2" x:Name="CheckBoxServer" Content="Server" Margin="5" IsChecked="{Binding IsServer, ValidatesOnDataErrors=True}"/>
-                    <CheckBox Grid.Row="2" Grid.Column="2" x:Name="CheckBoxOffline" Content="Offline" Margin="5" IsChecked="{Binding IsOffline, ValidatesOnDataErrors=True}"/>
+                    <Label Grid.Row="0" Grid.Column="0" Content="Stage" Margin="0" FontWeight="Bold" />
+                    <RadioButton Grid.Row="1" Grid.Column="0" x:Name="RadioButtonPreValidation"
+                                 Content="Pre-validation" GroupName="StageGroup" Margin="5"
+                                 IsChecked="{Binding IsPreValidation}" />
+                    <RadioButton Grid.Row="2" Grid.Column="0" x:Name="RadioButtonPreOperation" Content="Pre-operation"
+                                 GroupName="StageGroup" Margin="5"
+                                 IsChecked="{Binding IsPreOperation}" />
+                    <RadioButton Grid.Row="3" Grid.Column="0" x:Name="RadioButtonPostOperation"
+                                 Content="Post-operation" GroupName="StageGroup" Margin="5"
+                                 IsChecked="{Binding IsPostOperation}" />
+                    <Label Grid.Row="0" Grid.Column="1" Content="Mode" FontWeight="Bold" />
+                    <RadioButton Grid.Row="1" Grid.Column="1" x:Name="RadioButtonAsync" Content="Asynchronous"
+                                 GroupName="ModeGroup" Margin="5"
+                                 IsChecked="{Binding IsAsync}" IsEnabled="{Binding IsAsyncEnabled}" />
+                    <RadioButton Grid.Row="2" Grid.Column="1" x:Name="RadioButtonSync" Content="Synchronous"
+                                 GroupName="ModeGroup" Margin="5"
+                                 IsChecked="{Binding IsSync}" IsEnabled="{Binding IsAsyncEnabled}" />
+                    <Label Grid.Row="0" Grid.Column="2" Content="Deployment" FontWeight="Bold" />
+                    <CheckBox Grid.Row="1" Grid.Column="2" x:Name="CheckBoxServer" Content="Server" Margin="5"
+                              IsChecked="{Binding IsServer, ValidatesOnDataErrors=True}" />
+                    <CheckBox Grid.Row="2" Grid.Column="2" x:Name="CheckBoxOffline" Content="Offline" Margin="5"
+                              IsChecked="{Binding IsOffline, ValidatesOnDataErrors=True}" />
                 </Grid>
-                <CheckBox x:Name="CheckBoxDeleteLog" Content="Delete async operation job entry if successful" Margin="6,2,2,2"
-                          IsChecked="{Binding IsDeleteJob}" IsEnabled="{Binding IsAsync}"/>
+                <CheckBox x:Name="CheckBoxDeleteLog" Content="Delete async operation job entry if successful"
+                          Margin="6,2,2,2"
+                          IsChecked="{Binding IsDeleteJob}" IsEnabled="{Binding IsAsync}" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="ButtonOk" Content="OK" Margin="5" Width="50" Click="Button_Click"/>
-                    <Button x:Name="ButtonCancel" Content="Cancel" Margin="5" Width="50" Click="ButtonCancel_Click"/>
+                    <Button x:Name="ButtonOk" Content="OK" Margin="5" Width="50" Click="Button_Click" />
+                    <Button x:Name="ButtonCancel" Content="Cancel" Margin="5" Width="50" Click="ButtonCancel_Click" />
                 </StackPanel>
             </StackPanel>
             <Grid Grid.Column="1" Margin="5,0,0,0">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Label Grid.Row="0" Content="Unsecure Configuration" FontWeight="Bold"/>
+                <Label Grid.Row="0" Content="Unsecure Configuration" FontWeight="Bold" />
                 <TextBox Grid.Row="1" Text="{Binding UnsecureConfig}" TextWrapping="Wrap" AcceptsReturn="True" />
-                <Label Grid.Row="2" Content="Secure Configuration" FontWeight="Bold"/>
+                <Label Grid.Row="2" Content="Secure Configuration" FontWeight="Bold" />
                 <TextBox Grid.Row="3" Text="{Binding SecureConfig}" TextWrapping="Wrap" AcceptsReturn="True" />
             </Grid>
         </Grid>
