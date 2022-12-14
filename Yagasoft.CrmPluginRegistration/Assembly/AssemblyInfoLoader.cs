@@ -17,22 +17,19 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 		{
 			AssemblyInfo assemblyInfo = null;
 
-			var setup = new AppDomainSetup
-						{
-							ApplicationBase = Path.GetDirectoryName(assemblyPath),
-							ShadowCopyFiles = "true"
-						};
+			var setup =
+				new AppDomainSetup
+				{
+					ApplicationBase = Path.GetDirectoryName(assemblyPath),
+					ShadowCopyFiles = "true"
+				};
 
 			// create a temporary app domain
 			var tempDomain = AppDomain.CreateDomain("TempDomain", null, setup);
 
-			AppDomain.CurrentDomain.AssemblyResolve += AssemblyLoader.Domain_AssemblyResolve;
-
 			// create proxy instance in temporary domain
 			var asmLoader = (AssemblyLoader)tempDomain.CreateInstanceFromAndUnwrap(
 				loaderAssemblyPath, typeof(AssemblyLoader).FullName);
-
-			AppDomain.CurrentDomain.AssemblyResolve -= AssemblyLoader.Domain_AssemblyResolve;
 
 			// load assembly in other domain
 			assemblyInfo = asmLoader.LoadAssemblyInfo(assemblyPath, fullBaseClassName);
@@ -79,7 +76,7 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 			}
 		}
 
-		public AssemblyInfo(Assembly assembly, string[] classNames)
+		public AssemblyInfo(Assembly assembly, params string[] classNames)
 			: this(assembly.GetName())
 		{
 			RuntimeVersion = assembly.ImageRuntimeVersion;
@@ -136,8 +133,14 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 	{
 		public AssemblyInfo LoadAssemblyInfo(string assemblyPath, string[] fullBaseClassName)
 		{
+			AppDomain.CurrentDomain.AssemblyResolve += Domain_AssemblyResolve;
+
 			var assembly = Assembly.LoadFrom(assemblyPath);
-			return new AssemblyInfo(assembly, fullBaseClassName);
+			var info = new AssemblyInfo(assembly, fullBaseClassName);
+
+			AppDomain.CurrentDomain.AssemblyResolve -= Domain_AssemblyResolve;
+
+			return info;
 		}
 
 		public static Assembly Domain_AssemblyResolve(object sender, ResolveEventArgs args)
@@ -145,6 +148,7 @@ namespace CrmPluginRegExt.AssemblyInfoLoader
 			try
 			{
 				var assembly = Assembly.Load(args.Name);
+
 				if (assembly != null)
 				{
 					return assembly;

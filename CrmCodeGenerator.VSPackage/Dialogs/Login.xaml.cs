@@ -16,7 +16,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 using System.Windows.Threading;
-using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Helpers;
 using CrmPluginRegExt.VSPackage.PluginRegistration;
 using EnvDTE80;
@@ -29,6 +28,7 @@ using Yagasoft.CrmPluginRegistration.Model;
 using Yagasoft.Libraries.Common;
 using Application = System.Windows.Forms.Application;
 using MultiSelectComboBoxClass = CrmCodeGenerator.Controls.MultiSelectComboBox;
+using Process = System.Diagnostics.Process;
 
 #endregion
 
@@ -41,7 +41,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v3.2.2";
+		private const string WindowTitle = "Plugin Registration Extension v3.3.1";
 
 		private readonly ConnectionManager connectionManager;
 		private DefaultPluginRegLogger registrationLog;
@@ -851,8 +851,8 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 											 {
 												 assemblyRegistration.SetTypeStepState(step.Id,
 													 step.IsDisabled
-														 ? SdkMessageProcessingStepState.Disabled
-														 : SdkMessageProcessingStepState.Enabled);
+														 ? SdkMessageProcessingStep.StatusEnum.Disabled
+														 : SdkMessageProcessingStep.StatusEnum.Enabled);
 												 step.IsDisabled = !step.IsDisabled;
 											 });
 						   }
@@ -917,7 +917,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 						}
 
 						IsAddImageAllowed =
-							(step.Message == "Create" && step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation)
+							(step.Message == "Create" && step.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Postoperation)
 								|| (step.Message != "Create"
 									&& !string.IsNullOrEmpty(CrmDataHelpers.GetMessagePropertyName(step.Message, step.Entity)));
 					}

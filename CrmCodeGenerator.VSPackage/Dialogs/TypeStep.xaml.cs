@@ -10,7 +10,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using CrmPluginEntities;
+using Yagasoft.CrmPluginRegistration;
 using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.CrmPluginRegistration.Helpers;
 using Yagasoft.CrmPluginRegistration.Model;
@@ -154,12 +154,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPreValidation
 		{
-			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Prevalidation;
+			get => CrmStep.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Prevalidation;
 			set
 			{
 				if (value)
 				{
-					CrmStep.Stage = SdkMessageProcessingStep.Enums.Stage.Prevalidation;
+					CrmStep.Stage = SdkMessageProcessingStep.ExecutionStageEnum.Prevalidation;
 					IsSync = true;
 				}
 
@@ -170,12 +170,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPreOperation
 		{
-			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Preoperation;
+			get => CrmStep.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Preoperation;
 			set
 			{
 				if (value)
 				{
-					CrmStep.Stage = SdkMessageProcessingStep.Enums.Stage.Preoperation;
+					CrmStep.Stage = SdkMessageProcessingStep.ExecutionStageEnum.Preoperation;
 					IsSync = true;
 				}
 
@@ -186,12 +186,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsPostOperation
 		{
-			get => CrmStep.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation;
+			get => CrmStep.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Postoperation;
 			set
 			{
 				if (value)
 				{
-					CrmStep.Stage = SdkMessageProcessingStep.Enums.Stage.Postoperation;
+					CrmStep.Stage = SdkMessageProcessingStep.ExecutionStageEnum.Postoperation;
 				}
 
 				OnPropertyChanged("IsPostOperation");
@@ -200,12 +200,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsAsync
 		{
-			get => CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Asynchronous;
+			get => CrmStep.Mode == SdkMessageProcessingStep.ExecutionModeEnum.Asynchronous;
 			set
 			{
 				if (value)
 				{
-					CrmStep.Mode = SdkMessageProcessingStep.Enums.Mode.Asynchronous;
+					CrmStep.Mode = SdkMessageProcessingStep.ExecutionModeEnum.Asynchronous;
 				}
 
 				OnPropertyChanged("IsAsync");
@@ -214,12 +214,12 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsSync
 		{
-			get => CrmStep.Mode == SdkMessageProcessingStep.Enums.Mode.Synchronous;
+			get => CrmStep.Mode == SdkMessageProcessingStep.ExecutionModeEnum.Synchronous;
 			set
 			{
 				if (value)
 				{
-					CrmStep.Mode = SdkMessageProcessingStep.Enums.Mode.Synchronous;
+					CrmStep.Mode = SdkMessageProcessingStep.ExecutionModeEnum.Synchronous;
 					IsDeleteJob = false;
 				}
 
@@ -231,22 +231,22 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsServer
 		{
-			get => CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
-				|| CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
+			get => CrmStep.Deployment == SdkMessageProcessingStep.DeploymentEnum.Both
+				|| CrmStep.Deployment == SdkMessageProcessingStep.DeploymentEnum.ServerOnly;
 
 			set
 			{
 				if (value && IsOffline)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.Both;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.Both;
 				}
 				else if (value)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.ServerOnly;
 				}
 				else if (IsOffline)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.MicrosoftDynamics365ClientforOutlookOnly;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.MicrosoftDynamics365ClientforOutlookOnly;
 				}
 
 				OnPropertyChanged("IsServer");
@@ -255,24 +255,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		public bool IsOffline
 		{
-			get => CrmStep.Deployment == SdkMessageProcessingStep.Enums.SupportedDeployment.Both
+			get => CrmStep.Deployment == SdkMessageProcessingStep.DeploymentEnum.Both
 				||
 				CrmStep.Deployment ==
-					SdkMessageProcessingStep.Enums.SupportedDeployment.MicrosoftDynamics365ClientforOutlookOnly;
+					SdkMessageProcessingStep.DeploymentEnum.MicrosoftDynamics365ClientforOutlookOnly;
 
 			set
 			{
 				if (IsServer && value)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.Both;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.Both;
 				}
 				else if (IsServer)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.ServerOnly;
 				}
 				else if (value)
 				{
-					CrmStep.Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.MicrosoftDynamics365ClientforOutlookOnly;
+					CrmStep.Deployment = SdkMessageProcessingStep.DeploymentEnum.MicrosoftDynamics365ClientforOutlookOnly;
 				}
 
 				OnPropertyChanged("IsOffline");

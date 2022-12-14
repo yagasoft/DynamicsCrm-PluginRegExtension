@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
-using CrmPluginEntities;
 using CrmPluginRegExt.VSPackage.Dialogs;
 using CrmPluginRegExt.VSPackage.Helpers;
 using CrmPluginRegExt.VSPackage.PluginRegistration;

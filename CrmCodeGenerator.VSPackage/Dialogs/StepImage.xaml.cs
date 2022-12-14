@@ -4,7 +4,6 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
-using CrmPluginEntities;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.Xrm.Sdk;
 using Yagasoft.CrmPluginRegistration.Model;

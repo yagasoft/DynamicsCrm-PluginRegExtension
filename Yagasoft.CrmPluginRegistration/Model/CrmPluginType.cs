@@ -3,7 +3,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.CrmPluginRegistration.Connection;
 
@@ -29,45 +28,44 @@ namespace Yagasoft.CrmPluginRegistration.Model
 				return;
 			}
 
-			using (var context = new XrmServiceContext(ConnectionManager.Get()) {MergeOption = MergeOption.NoTracking})
-			{
-				var result =
-					(from type in context.PluginTypeSet
-					 join step in context.SdkMessageProcessingStepSet
-						 on type.PluginTypeId equals step.EventHandler.Id
-						 into stepOuterT
-					 from stepOuterQ in stepOuterT.DefaultIfEmpty()
-					 where type.PluginTypeId == Id
-					 select new
-							{
-								id = type.PluginTypeId.Value,
-								name = type.Name,
-								isWorkflow = type.IsWorkflowActivity.HasValue
-									&& type.IsWorkflowActivity.Value,
-								stepId = stepOuterQ.SdkMessageProcessingStepId ?? Guid.Empty,
-								stepName = stepOuterQ.Name,
-								stepDisabled = stepOuterQ.StateCode == SdkMessageProcessingStepState.Disabled
-							}).ToList();
+			using var context = new XrmServiceContext(ConnectionManager.Get()) {MergeOption = MergeOption.NoTracking};
 
-				if (!result.Any())
-				{
-					Children = Unfiltered = null;
-					return;
-				}
-
-				Name = result.First().name;
-				Children = Unfiltered = new ObservableCollection<CrmTypeStep>(result
-					.GroupBy(step => step.stepId)
-					.Where(stepGroup => stepGroup.First().stepId != Guid.Empty)
-					.Select(stepGroup =>
-						new CrmTypeStep(ConnectionManager)
+			var result =
+				(from type in context.PluginTypeSet
+				 join step in context.SdkMessageProcessingStepSet
+					 on type.PluginTypeId equals step.EventHandler.Id
+					 into stepOuterT
+				 from stepOuterQ in stepOuterT.DefaultIfEmpty()
+				 where type.PluginTypeId == Id
+				 select new
 						{
-							Id = stepGroup.First().stepId,
-							Name = stepGroup.First().stepName,
-							IsDisabled = stepGroup.First().stepDisabled,
-							Type = this
-						}).OrderBy(step => step.Name));
+							id = type.PluginTypeId.Value,
+							name = type.Name,
+							isWorkflow = type.IsWorkflowActivity.HasValue
+								&& type.IsWorkflowActivity.Value,
+							stepId = stepOuterQ.SdkMessageProcessingStepIdId ?? Guid.Empty,
+							stepName = stepOuterQ.Name,
+							stepDisabled = stepOuterQ.Status == SdkMessageProcessingStep.StatusEnum.Disabled
+						}).ToList();
+
+			if (!result.Any())
+			{
+				Children = Unfiltered = null;
+				return;
 			}
+
+			Name = result.First().name;
+			Children = Unfiltered = new ObservableCollection<CrmTypeStep>(result
+				.GroupBy(step => step.stepId)
+				.Where(stepGroup => stepGroup.First().stepId != Guid.Empty)
+				.Select(stepGroup =>
+					new CrmTypeStep(ConnectionManager)
+					{
+						Id = stepGroup.First().stepId,
+						Name = stepGroup.First().stepName,
+						IsDisabled = stepGroup.First().stepDisabled,
+						Type = this
+					}).OrderBy(step => step.Name));
 		}
 	}
 }

@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.CrmPluginRegistration.Logger;
@@ -86,7 +85,7 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 				throw new Exception("Assembly doesn't exist in CRM.");
 			}
 
-			var isolated = assembly.FirstOrDefault()?.IsolationMode.Value == (int)PluginAssembly.Enums.IsolationMode.Sandbox;
+			var isolated = assembly.FirstOrDefault()?.IsolationMode == PluginAssembly.IsolationModeEnum.Sandbox;
 
 			pluginRegLogger.Log("** Finished checking assembly isolation. Isolated => " + isolated);
 
@@ -104,7 +103,7 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 			{
 				types =
 					(from type in context.PluginTypeSet
-					 where type.PluginAssemblyId.Id == assemblyId
+					 where type.PluginAssembly == assemblyId
 					 select type).ToArray();
 			}
 
@@ -126,11 +125,11 @@ namespace Yagasoft.CrmPluginRegistration.Assembly
 					(from step in context.SdkMessageProcessingStepSet
 					 join type in context.PluginTypeSet
 						 on step.EventHandler.Id equals type.PluginTypeId
-					 where type.PluginAssemblyId.Id == assemblyId
+					 where type.PluginAssembly == assemblyId
 					 select 
 						 new SdkMessageProcessingStep
 						 {
-							 Id = step.SdkMessageProcessingStepId.GetValueOrDefault(),
+							 Id = step.SdkMessageProcessingStepIdId.GetValueOrDefault(),
 							 EventHandler = step.EventHandler
 						 }).ToArray();
 			}

@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using CrmPluginEntities;
 using CrmPluginRegExt.AssemblyInfoLoader;
 using Microsoft.Crm.Sdk.Messages;
 using Microsoft.Xrm.Sdk;
@@ -250,7 +249,7 @@ namespace Yagasoft.CrmPluginRegistration
 			}
 		}
 
-		public void SetTypeStepState(Guid stepId, SdkMessageProcessingStepState state)
+		public void SetTypeStepState(Guid stepId, SdkMessageProcessingStep.StatusEnum state)
 		{
 			lock (ActionLock)
 			{
@@ -283,11 +282,11 @@ namespace Yagasoft.CrmPluginRegistration
 				new PluginAssembly
 				{
 					Name = assemblyName,
-					IsolationMode = (sandbox
-						? PluginAssembly.Enums.IsolationMode.Sandbox
-						: PluginAssembly.Enums.IsolationMode.None).ToOptionSetValue(),
+					IsolationMode = sandbox
+						? PluginAssembly.IsolationModeEnum.Sandbox
+						: PluginAssembly.IsolationModeEnum.None,
 					Content = Convert.ToBase64String(assemblyData),
-					SourceType = PluginAssembly.Enums.SourceType.Database.ToOptionSetValue(),
+					SourceType = PluginAssembly.SourceTypeEnum.Database,
 					Culture = cultureInfo.LCID == CultureInfo.InvariantCulture.LCID
 						? "neutral"
 						: cultureInfo.Name
@@ -325,9 +324,9 @@ namespace Yagasoft.CrmPluginRegistration
 			if (sandbox.HasValue)
 			{
 				updatedAssembly.IsolationMode =
-					new OptionSetValue((int)(sandbox.Value
-						? PluginAssembly.Enums.IsolationMode.Sandbox
-						: PluginAssembly.Enums.IsolationMode.None));
+					sandbox.Value
+						? PluginAssembly.IsolationModeEnum.Sandbox
+						: PluginAssembly.IsolationModeEnum.None;
 			}
 
 			UpdateStatus("Updating assembly ... ");
@@ -349,8 +348,7 @@ namespace Yagasoft.CrmPluginRegistration
 			var oldestVersion = oldestAssembly?.Version.IsFilled() == true ? new Version(oldestAssembly.Version) : null;
 			UpdateStatus($"Existing version: v{oldestVersion} ... ");
 
-			sandbox ??= (PluginAssembly.Enums.IsolationMode?)oldestAssembly?.IsolationMode.Value
-				== PluginAssembly.Enums.IsolationMode.Sandbox;
+			sandbox ??= oldestAssembly?.IsolationMode == PluginAssembly.IsolationModeEnum.Sandbox;
 
 			var newVersion = GetAssemblyVersion();
 			UpdateStatus($"New version: v{newVersion} ... ");
@@ -487,7 +485,7 @@ Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
 			}
 		}
 
-		private bool UpgradeWfDefinitions(string existingAssemblyFullName, IReadOnlyList<Workflow> existingWfs)
+		private bool UpgradeWfDefinitions(string existingAssemblyFullName, IReadOnlyList<Process> existingWfs)
 		{
 			string message;
 			UpdateStatus($"Updating WF definitions to the new version ... ");
@@ -505,13 +503,12 @@ Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
 			UpdateStatus($"Replacing '{existingAssemblyFullName}' with '{newAssemblyFullName}' ... ", 1);
 
 			var activeWfs = existingWfs
-				.Where(w => w.StateCode == WorkflowState.Activated
-					&& (Workflow.Enums.StatusCode?)w.StatusCode?.Value == Workflow.Enums.StatusCode.Activated).ToArray();
+				.Where(w => w.StatusReason == Process.StatusReasonEnum.Activated).ToArray();
 
 			if (activeWfs.Any())
 			{
 				var warning = $@"The following WFs are active, and they must be deactivated before the upgrade:
-- {activeWfs.Select(w => $"{w.Name} ({w.Id})").StringAggregate("\r\n- ")}";
+- {activeWfs.Select(w => $"{w.ProcessName} ({w.Id})").StringAggregate("\r\n- ")}";
 
 				message = $@"{warning}
 
@@ -526,13 +523,13 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 						{
 							var service = connectionManager.Get();
 
-							UpdateStatus($"Deactivating WF: {wf.Name} ({wf.Id}) ... ");
+							UpdateStatus($"Deactivating WF: {wf.ProcessName} ({wf.Id}) ... ");
 							service.Update(
-								new Workflow
+								new Process
 								{
 									Id = wf.Id,
-									StateCode = WorkflowState.Draft,
-									StatusCode = Workflow.Enums.StatusCode.Draft.ToOptionSetValue()
+									Status = Process.StatusEnum.Draft,
+									StatusReason = Process.StatusReasonEnum.Draft
 								});
 						});
 				}
@@ -548,9 +545,9 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				{
 					var service = connectionManager.Get();
 
-					UpdateStatus($"Updating WF: {wf.Name} ({wf.Id}) ... ");
+					UpdateStatus($"Updating WF: {wf.ProcessName} ({wf.Id}) ... ");
 					service.Update(
-						new Workflow
+						new Process
 						{
 							Id = wf.Id,
 							Xaml = wf.Xaml.Replace(existingAssemblyFullName, newAssemblyFullName)
@@ -565,7 +562,7 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 		{
 			UpdateStatus("Deleting assembly ... ", 1);
 
-			DeleteTree(Id, Dependency.Enums.RequiredComponentType.PluginAssembly);
+			DeleteTree(Id, GlobalEnums.ComponentType.PluginAssembly);
 
 			UpdateStatus("Finished deleting assembly. ID => " + Id, -1);
 
@@ -595,8 +592,8 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 						PluginTypeId = Guid.NewGuid(),
 						Name = pluginType,
 						TypeName = pluginType,
-						FriendlyName = $"{className} ({assemblyVersion})",
-						PluginAssemblyId = new EntityReference(PluginAssembly.EntityLogicalName, Id)
+						DisplayName_FriendlyName = $"{className} ({assemblyVersion})",
+						PluginAssembly = Id
 					};
 
 				connectionManager.Get().Create(newType);
@@ -617,8 +614,8 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 						PluginTypeId = Guid.NewGuid(),
 						Name = pluginType,
 						TypeName = pluginType,
-						FriendlyName = $"{className} ({assemblyVersion})",
-						PluginAssemblyId = new EntityReference(PluginAssembly.EntityLogicalName, Id),
+						DisplayName_FriendlyName = $"{className} ({assemblyVersion})",
+						PluginAssembly = Id,
 						WorkflowActivityGroupName = string.Format(CultureInfo.InvariantCulture, "{0} ({1})",
 							assemblyName, GetAssemblyVersion())
 					};
@@ -651,7 +648,7 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 					UpdateStatus("Deleting non-existent types ... ", 1);
 
 					nonExistentTypes.ForEach(pluginType => DeleteTree(pluginType.Id,
-						Dependency.Enums.RequiredComponentType.PluginType));
+						GlobalEnums.ComponentType.PluginType));
 
 					UpdateStatus("Finished deleting non-existent types.", -1);
 				}
@@ -674,51 +671,48 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 
 			if (!string.IsNullOrEmpty(step.SecureConfig))
 			{
-				using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
-				{
-					secureId = step.SecureId =
-						((CreateResponse)context.Execute(
-							new CreateRequest
-							{
-								Target =
-									new SdkMessageProcessingStepSecureConfig
-									{
-										SecureConfig = step.SecureConfig
-									}
-							})).id;
-				}
+				using var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
+				secureId = step.SecureId =
+					((CreateResponse)context.Execute(
+						new CreateRequest
+						{
+							Target =
+								new SdkMessageProcessingStepSecureConfiguration
+								{
+									SecureConfiguration = step.SecureConfig
+								}
+						})).id;
 			}
 
 			var newStep =
 				new SdkMessageProcessingStep
 				{
-					SdkMessageId = new EntityReference(SdkMessage.EntityLogicalName, step.MessageId),
+					SDKMessage = step.MessageId,
 					Name = step.Name,
 					FilteringAttributes = step.Attributes ?? "",
-					Rank = step.ExecutionOrder,
+					ExecutionOrder = step.ExecutionOrder,
 					Description = step.Description ?? "",
-					Stage = step.Stage.ToOptionSetValue(),
-					Mode = step.Mode.ToOptionSetValue(),
-					SupportedDeployment = step.Deployment.ToOptionSetValue(),
-					AsyncAutoDelete = step.IsDeleteJob,
+					ExecutionStage = step.Stage,
+					ExecutionMode = step.Mode,
+					Deployment = step.Deployment,
+					AsynchronousAutomaticDelete = step.IsDeleteJob,
 					Configuration = step.UnsecureConfig ?? "",
 					EventHandler = new EntityReference(PluginType.EntityLogicalName, step.Type.Id)
 				};
 
 			if (step.UserId != Guid.Empty)
 			{
-				newStep.ImpersonatingUserId = new EntityReference(SystemUser.EntityLogicalName, step.UserId);
+				newStep.ImpersonatingUser = step.UserId;
 			}
 
 			if (step.FilterId != Guid.Empty)
 			{
-				newStep.SdkMessageFilterId = new EntityReference(SdkMessageFilter.EntityLogicalName, step.FilterId);
+				newStep.SdkMessageFilter = step.FilterId;
 			}
 
 			if (secureId != Guid.Empty)
 			{
-				newStep.SdkMessageProcessingStepSecureConfigId =
-					new EntityReference(SdkMessageProcessingStepSecureConfig.EntityLogicalName, secureId);
+				newStep.SDKMessageProcessingStepSecureConfiguration = secureId;
 			}
 
 			UpdateStatus("Saving new step to CRM ... ");
@@ -736,35 +730,19 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				new SdkMessageProcessingStep
 				{
 					Id = step.Id,
-					SdkMessageId = new EntityReference(SdkMessage.EntityLogicalName, step.MessageId),
+					SDKMessage = step.MessageId,
 					FilteringAttributes = step.Attributes ?? "",
 					Name = step.Name,
-					Rank = step.ExecutionOrder,
+					ExecutionOrder = step.ExecutionOrder,
 					Description = step.Description ?? "",
-					Stage = step.Stage.ToOptionSetValue(),
-					Mode = step.Mode.ToOptionSetValue(),
-					SupportedDeployment = step.Deployment.ToOptionSetValue(),
-					AsyncAutoDelete = step.IsDeleteJob,
-					Configuration = step.UnsecureConfig ?? ""
+					ExecutionStage = step.Stage,
+					ExecutionMode = step.Mode,
+					Deployment = step.Deployment,
+					AsynchronousAutomaticDelete = step.IsDeleteJob,
+					Configuration = step.UnsecureConfig ?? "",
+					ImpersonatingUser = step.UserId == Guid.Empty ? null : step.UserId,
+					SdkMessageFilter = step.FilterId == Guid.Empty ? null : step.FilterId
 				};
-
-			if (step.UserId == Guid.Empty)
-			{
-				updatedStep.ImpersonatingUserId = null;
-			}
-			else
-			{
-				updatedStep.ImpersonatingUserId = new EntityReference(SystemUser.EntityLogicalName, step.UserId);
-			}
-
-			if (step.FilterId == Guid.Empty)
-			{
-				updatedStep.SdkMessageFilterId = null;
-			}
-			else
-			{
-				updatedStep.SdkMessageFilterId = new EntityReference(SdkMessageFilter.EntityLogicalName, step.FilterId);
-			}
 
 			var secureId = step.SecureId;
 
@@ -776,27 +754,25 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 			{
 				if (secureId == Guid.Empty)
 				{
-					using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
-					{
-						secureId = step.SecureId =
-							((CreateResponse)context.Execute(
-								new CreateRequest
-								{
-									Target =
-										new SdkMessageProcessingStepSecureConfig
-										{
-											SecureConfig = step.SecureConfig
-										}
-								})).id;
-					}
+					using var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
+					secureId = step.SecureId =
+						((CreateResponse)context.Execute(
+							new CreateRequest
+							{
+								Target =
+									new SdkMessageProcessingStepSecureConfiguration
+									{
+										SecureConfiguration = step.SecureConfig
+									}
+							})).id;
 				}
 				else
 				{
 					var updatedSecure =
-						new SdkMessageProcessingStepSecureConfig
+						new SdkMessageProcessingStepSecureConfiguration
 						{
 							Id = step.SecureId,
-							SecureConfig = step.SecureConfig
+							SecureConfiguration = step.SecureConfig
 						};
 
 					UpdateStatus("Updated secure config ... ");
@@ -805,10 +781,7 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				}
 			}
 
-			updatedStep.SdkMessageProcessingStepSecureConfigId =
-				secureId == Guid.Empty
-					? null
-					: new EntityReference(SdkMessageProcessingStepSecureConfig.EntityLogicalName, secureId);
+			updatedStep.SDKMessageProcessingStepSecureConfiguration = secureId == Guid.Empty ? null : secureId;
 
 			UpdateStatus("Updated step ... ");
 
@@ -821,17 +794,17 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 		{
 			UpdateStatus($"Deleting step '{stepId}' in type ... ", 1);
 
-			DeleteTree(stepId, Dependency.Enums.RequiredComponentType.SDKMessageProcessingStep);
+			DeleteTree(stepId, GlobalEnums.ComponentType.SDKMessageProcessingStep);
 
 			UpdateStatus("Finished deleting step. ID => " + stepId, -1);
 		}
 
-		private void _SetStepState(Guid stepId, SdkMessageProcessingStepState state)
+		private void _SetStepState(Guid stepId, SdkMessageProcessingStep.StatusEnum state)
 		{
 			var toggledState =
-				state == SdkMessageProcessingStepState.Enabled
-					? SdkMessageProcessingStepState.Disabled
-					: SdkMessageProcessingStepState.Enabled;
+				state == SdkMessageProcessingStep.StatusEnum.Enabled
+					? SdkMessageProcessingStep.StatusEnum.Disabled
+					: SdkMessageProcessingStep.StatusEnum.Enabled;
 
 			UpdateStatus($"Setting step state to '{toggledState}' ... ", 1);
 
@@ -841,9 +814,9 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 					EntityMoniker = new EntityReference(SdkMessageProcessingStep.EntityLogicalName, stepId),
 					State = toggledState.ToOptionSetValue(),
 					Status =
-						(toggledState == SdkMessageProcessingStepState.Enabled
-							? SdkMessageProcessingStep.Enums.StatusCode.Enabled
-							: SdkMessageProcessingStep.Enums.StatusCode.Disabled).ToOptionSetValue()
+						(toggledState == SdkMessageProcessingStep.StatusEnum.Enabled
+							? SdkMessageProcessingStep.StatusReasonEnum.Enabled
+							: SdkMessageProcessingStep.StatusReasonEnum.Disabled).ToOptionSetValue()
 				});
 
 			UpdateStatus("Finished setting step state. ID => " + stepId, -1);
@@ -862,11 +835,10 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				{
 					Name = image.Name,
 					EntityAlias = image.EntityAlias,
-					Attributes1 = image.AttributesSelectedString,
-					ImageType = image.ImageType.ToOptionSetValue(),
+					Attributes_Attributes1 = image.AttributesSelectedString,
+					ImageType = image.ImageType,
 					MessagePropertyName = image.Step.MessagePropertyName,
-					SdkMessageProcessingStepId =
-						new EntityReference(SdkMessageProcessingStep.EntityLogicalName, image.Step.Id)
+					SDKMessageProcessingStep = image.Step.Id
 				};
 
 			UpdateStatus("Saving new image to CRM ... ");
@@ -886,11 +858,10 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 					Id = image.Id,
 					Name = image.Name,
 					EntityAlias = image.EntityAlias,
-					Attributes1 = image.AttributesSelectedString,
-					ImageType = image.ImageType.ToOptionSetValue(),
+					Attributes_Attributes1 = image.AttributesSelectedString,
+					ImageType = image.ImageType,
 					MessagePropertyName = image.Step.MessagePropertyName,
-					SdkMessageProcessingStepId =
-						new EntityReference(SdkMessageProcessingStep.EntityLogicalName, image.Step.Id)
+					SDKMessageProcessingStep = image.Step.Id
 				};
 
 			UpdateStatus("Updating image ... ");
@@ -904,20 +875,20 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 		{
 			UpdateStatus($"Deleting image '{imageId}' in type ... ", 1);
 
-			DeleteTree(imageId, Dependency.Enums.RequiredComponentType.SDKMessageProcessingStepImage);
+			DeleteTree(imageId, GlobalEnums.ComponentType.SDKMessageProcessingStepImage);
 
 			UpdateStatus("Finished deleting image. ID => " + imageId, -1);
 		}
 
 		#endregion
 
-		private void DeleteTree(Guid objectId, Dependency.Enums.RequiredComponentType type)
+		private void DeleteTree(Guid objectId, GlobalEnums.ComponentType? type)
 		{
 			var dependencies = ((RetrieveDependenciesForDeleteResponse)
 				connectionManager.Get().Execute(
 					new RetrieveDependenciesForDeleteRequest
 					{
-						ComponentType = (int)type,
+						ComponentType = (int)type.GetValueOrDefault(),
 						ObjectId = objectId
 					})).EntityCollection.Entities.ToList();
 
@@ -925,16 +896,16 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 
 			switch (type)
 			{
-				case Dependency.Enums.RequiredComponentType.PluginAssembly:
+				case GlobalEnums.ComponentType.PluginAssembly:
 					logicalname = PluginAssembly.EntityLogicalName;
 					break;
-				case Dependency.Enums.RequiredComponentType.PluginType:
+				case GlobalEnums.ComponentType.PluginType:
 					logicalname = PluginType.EntityLogicalName;
 					break;
-				case Dependency.Enums.RequiredComponentType.SDKMessageProcessingStep:
+				case GlobalEnums.ComponentType.SDKMessageProcessingStep:
 					logicalname = SdkMessageProcessingStep.EntityLogicalName;
 					break;
-				case Dependency.Enums.RequiredComponentType.SDKMessageProcessingStepImage:
+				case GlobalEnums.ComponentType.SDKMessageProcessingStepImage:
 					dependencies.Clear();
 					logicalname = SdkMessageProcessingStepImage.EntityLogicalName;
 					break;
@@ -951,11 +922,10 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 					if (entityQ.DependentComponentObjectId != null)
 					{
 						UpdateStatus($"Deleting dependency '{entityQ.DependentComponentObjectId.Value}'"
-							+ $" of type '{(Dependency.Enums.RequiredComponentType)entityQ.DependentComponentType.Value}' ... ",
+							+ $" of type '{entityQ.DependentComponentType}' ... ",
 							1);
 
-						DeleteTree(entityQ.DependentComponentObjectId.Value,
-							(Dependency.Enums.RequiredComponentType)entityQ.DependentComponentType.Value);
+						DeleteTree(entityQ.DependentComponentObjectId.GetValueOrDefault(), entityQ.DependentComponentType);
 
 						UpdateStatus($"Finished deleting dependency '{entityQ.DependentComponentObjectId.Value}'.", -1);
 					}
@@ -986,25 +956,25 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 			return existingTypeNames;
 		}
 
-		private IReadOnlyList<Workflow> RetrieveExistingWfs(string existingAssemblyFullName)
+		private IReadOnlyList<Process> RetrieveExistingWfs(string existingAssemblyFullName)
 		{
 			UpdateStatus("Retrieving existing WFs ... ");
 
 			using var xrmContext = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
 
 			var existingWfs =
-				(from wf in xrmContext.WorkflowSet
+				(from wf in xrmContext.ProcessSet
 				 where wf.Xaml.Contains(existingAssemblyFullName)
-					 && (wf.Type.Value == (int)Workflow.Enums.Type.Definition
-						 || wf.Type.Value == (int)Workflow.Enums.Type.Template)
+					 && (wf.Type == Process.TypeEnum.Definition
+						 || wf.Type == Process.TypeEnum.Template)
 				 select
-					 new Workflow
+					 new Process
 					 {
-						 WorkflowId = wf.WorkflowId,
-						 Name = wf.Name,
+						 ProcessId = wf.ProcessId,
+						 ProcessName = wf.ProcessName,
 						 Xaml = wf.Xaml,
-						 StateCode = wf.StateCode,
-						 StatusCode = wf.StatusCode
+						 Status = wf.Status,
+						 StatusReason = wf.StatusReason
 					 }).ToArray();
 
 			UpdateStatus($"Found: {existingWfs.Length}.");

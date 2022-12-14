@@ -39,9 +39,6 @@
     <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CrmPluginEntities">
-      <HintPath>..\lib\CrmPluginEntities.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy, Version=9.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.9.0.2.25\lib\net462\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
     </Reference>
@@ -87,6 +84,17 @@
     <Compile Include="Assembly\IAssemblyInfo.cs" />
     <Compile Include="Connection\IConnectionManager.cs" />
     <Compile Include="Assembly\CrmAssemblyHelpers.cs" />
+    <Compile Include="CrmSchema.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>CrmSchema.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CrmSchemaBase.cs">
+      <DependentUpon>CrmSchema.tt</DependentUpon>
+    </Compile>
+    <Compile Include="CrmSchemaContracts.cs">
+      <DependentUpon>CrmSchema.tt</DependentUpon>
+    </Compile>
     <Compile Include="Feedback\IFeedback.cs" />
     <Compile Include="Helpers\CrmDataHelpers.cs" />
     <Compile Include="Logger\DefaultPluginRegLogger.cs" />
@@ -102,9 +110,18 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="CrmSchema-Config.json" />
     <None Include="Key.snk" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="CrmSchema.tt">
+      <Generator>CrmCodeGenerator2011</Generator>
+      <LastGenOutput>CrmSchema.cs</LastGenOutput>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

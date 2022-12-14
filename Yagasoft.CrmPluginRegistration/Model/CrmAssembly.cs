@@ -4,7 +4,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.Libraries.Common;
@@ -22,48 +21,46 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 		protected override void RunUpdateLogic()
 		{
-			using (var context = new XrmServiceContext(ConnectionManager.Get()) { MergeOption = MergeOption.NoTracking })
-			{
-				var result =
-					(from assembly in context.PluginAssemblySet
-					 join type in context.PluginTypeSet
-						 on assembly.PluginAssemblyId equals type.PluginAssemblyId.Id
-					 where assembly.PluginAssemblyId == Id
-					 select new
-							{
-								id = assembly.PluginAssemblyId.Value,
-								name = assembly.Name,
-								isSandbox = assembly.IsolationMode.Value
-									== (int)PluginAssembly.Enums.IsolationMode.Sandbox,
-								typeId = type.PluginTypeId.Value,
-								typeName = type.Name,
-								typeIsWorkflow = type.IsWorkflowActivity.HasValue
-									&& type.IsWorkflowActivity.Value
-							}).ToList();
+			using var context = new XrmServiceContext(ConnectionManager.Get()) { MergeOption = MergeOption.NoTracking };
 
-				Children = Unfiltered = new ObservableCollection<CrmPluginType>();
-
-				if (!result.Any())
-				{
-					return;
-				}
-
-				Name = result.First().name;
-				IsSandbox = result.First().isSandbox;
-				Children = Unfiltered = new ObservableCollection<CrmPluginType>(result
-					.GroupBy(assembly => assembly.typeId)
-					.Where(typeGroup => typeGroup.First().id == Id)
-					.Select(typeGroup =>
-						new CrmPluginType(ConnectionManager)
+			var result =
+				(from assembly in context.PluginAssemblySet
+				 join type in context.PluginTypeSet
+					 on assembly.PluginAssemblyIdId equals type.PluginAssembly
+				 where assembly.PluginAssemblyIdId == Id
+				 select new
 						{
-							Id = typeGroup.First().typeId,
-							Name = typeGroup.First().typeName,
-							IsWorkflow = typeGroup.First().typeIsWorkflow,
-							Assembly = this
-						})
-					.OrderBy(type => type.IsWorkflow)
-					.ThenBy(type => type.Name));
+							id = assembly.PluginAssemblyIdId,
+							name = assembly.Name,
+							isSandbox = assembly.IsolationMode == PluginAssembly.IsolationModeEnum.Sandbox,
+							typeId = type.PluginTypeId.Value,
+							typeName = type.Name,
+							typeIsWorkflow = type.IsWorkflowActivity.HasValue
+								&& type.IsWorkflowActivity.Value
+						}).ToList();
+
+			Children = Unfiltered = new ObservableCollection<CrmPluginType>();
+
+			if (!result.Any())
+			{
+				return;
 			}
+
+			Name = result.First().name;
+			IsSandbox = result.First().isSandbox;
+			Children = Unfiltered = new ObservableCollection<CrmPluginType>(result
+				.GroupBy(assembly => assembly.typeId)
+				.Where(typeGroup => typeGroup.First().id == Id)
+				.Select(typeGroup =>
+					new CrmPluginType(ConnectionManager)
+					{
+						Id = typeGroup.First().typeId,
+						Name = typeGroup.First().typeName,
+						IsWorkflow = typeGroup.First().typeIsWorkflow,
+						Assembly = this
+					})
+				.OrderBy(type => type.IsWorkflow)
+				.ThenBy(type => type.Name));
 		}
 
 		public void Clear()

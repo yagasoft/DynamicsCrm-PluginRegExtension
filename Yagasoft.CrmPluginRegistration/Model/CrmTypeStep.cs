@@ -3,7 +3,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.CrmPluginRegistration.Connection;
 using Yagasoft.CrmPluginRegistration.Helpers;
@@ -49,9 +48,9 @@ namespace Yagasoft.CrmPluginRegistration.Model
 			}
 		}
 
-		public SdkMessageProcessingStep.Enums.Stage Stage { get; set; }
-		public SdkMessageProcessingStep.Enums.Mode Mode { get; set; }
-		public SdkMessageProcessingStep.Enums.SupportedDeployment Deployment { get; set; }
+		public SdkMessageProcessingStep.ExecutionStageEnum Stage { get; set; }
+		public SdkMessageProcessingStep.ExecutionModeEnum Mode { get; set; }
+		public SdkMessageProcessingStep.DeploymentEnum Deployment { get; set; }
 		public bool IsDeleteJob { get; set; }
 		public string UnsecureConfig { get; set; }
 		public string SecureConfig { get; set; }
@@ -67,9 +66,9 @@ namespace Yagasoft.CrmPluginRegistration.Model
 		public CrmTypeStep(IConnectionManager connectionManager) : base(connectionManager)
 		{
 			ExecutionOrder = 1;
-			Mode = SdkMessageProcessingStep.Enums.Mode.Synchronous;
-			Stage = SdkMessageProcessingStep.Enums.Stage.Postoperation;
-			Deployment = SdkMessageProcessingStep.Enums.SupportedDeployment.ServerOnly;
+			Mode = SdkMessageProcessingStep.ExecutionModeEnum.Synchronous;
+			Stage = SdkMessageProcessingStep.ExecutionStageEnum.Postoperation;
+			Deployment = SdkMessageProcessingStep.DeploymentEnum.ServerOnly;
 		}
 
 		protected override void RunUpdateLogic()
@@ -79,60 +78,60 @@ namespace Yagasoft.CrmPluginRegistration.Model
 				var result =
 					(from step in context.SdkMessageProcessingStepSet
 					 join image in context.SdkMessageProcessingStepImageSet
-						 on step.SdkMessageProcessingStepId equals image.SdkMessageProcessingStepId.Id
+						 on step.SdkMessageProcessingStepIdId equals image.SDKMessageProcessingStep
 						 into imageOuterT
 					 from imageOuterQ in imageOuterT.DefaultIfEmpty()
-					 where step.SdkMessageProcessingStepId == Id
+					 where step.SdkMessageProcessingStepIdId == Id
 					 select new
 							{
-								id = step.SdkMessageProcessingStepId.Value,
+								id = step.SdkMessageProcessingStepIdId,
 								name = step.Name,
-								imageId = imageOuterQ.SdkMessageProcessingStepImageId ?? Guid.Empty,
+								imageId = imageOuterQ.SdkMessageProcessingStepImageIdId ?? Guid.Empty,
 								imageName = imageOuterQ.Name
 							}).ToList();
 
 				var messageResult =
 					(from step in context.SdkMessageProcessingStepSet
 					 join message in context.SdkMessageSet
-						 on step.SdkMessageId.Id equals message.SdkMessageId
-					 where step.SdkMessageProcessingStepId == Id
+						 on step.SDKMessage equals message.SdkMessageIdId
+					 where step.SdkMessageProcessingStepIdId == Id
 					 select new
 							{
 								messageName = message.Name,
-								messageId = message.SdkMessageId ?? Guid.Empty,
+								messageId = message.SdkMessageIdId ?? Guid.Empty,
 								attributes = step.FilteringAttributes,
-								userId = step.ImpersonatingUserId,
-								rank = step.Rank,
+								userId = step.ImpersonatingUser,
+								rank = step.ExecutionOrder,
 								description = step.Description,
-								stage = step.Stage,
-								mode = step.Mode,
-								deployment = step.SupportedDeployment,
-								deleteJob = step.AsyncAutoDelete,
+								stage = step.ExecutionStage,
+								mode = step.ExecutionMode,
+								deployment = step.Deployment,
+								deleteJob = step.AsynchronousAutomaticDelete,
 								unsecureConfiguration = step.Configuration,
-								isDisabled = step.StateCode == SdkMessageProcessingStepState.Disabled
+								isDisabled = step.Status == SdkMessageProcessingStep.StatusEnum.Disabled
 							}).FirstOrDefault();
 
 				var filterResult =
 					(from step in context.SdkMessageProcessingStepSet
 					 join filter in context.SdkMessageFilterSet
-						 on step.SdkMessageFilterId.Id equals filter.SdkMessageFilterId
-					 where step.SdkMessageProcessingStepId == Id
+						 on step.SdkMessageFilter equals filter.SdkMessageFilterIdId
+					 where step.SdkMessageProcessingStepIdId == Id
 					 select new
 							{
 								entityName = filter.PrimaryObjectTypeCode,
-								filterId = filter.SdkMessageFilterId ?? Guid.Empty,
+								filterId = filter.SdkMessageFilterIdId ?? Guid.Empty,
 							}).FirstOrDefault();
 
 				var secureResult =
 					(from step in context.SdkMessageProcessingStepSet
-					 join secureConfig in context.SdkMessageProcessingStepSecureConfigSet
-						 on step.SdkMessageProcessingStepSecureConfigId.Id
-						 equals secureConfig.SdkMessageProcessingStepSecureConfigId
-					 where step.SdkMessageProcessingStepId == Id
+					 join secureConfig in context.SdkMessageProcessingStepSecureConfigurationSet
+						 on step.SDKMessageProcessingStepSecureConfiguration
+						 equals secureConfig.SdkMessageProcessingStepSecureConfigIdId
+					 where step.SdkMessageProcessingStepIdId == Id
 					 select new
 							{
-								id = secureConfig.SdkMessageProcessingStepSecureConfigId,
-								secureConfig = secureConfig.SecureConfig
+								id = secureConfig.SdkMessageProcessingStepSecureConfigIdId,
+								secureConfig = secureConfig.SecureConfiguration
 							}).FirstOrDefault();
 
 				if (messageResult != null)
@@ -153,14 +152,14 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 					if (messageResult.userId != null)
 					{
-						UserId = messageResult.userId.Id;
+						UserId = messageResult.userId.GetValueOrDefault();
 					}
 
 					ExecutionOrder = messageResult.rank ?? 1;
 					Description = messageResult.description;
-					Stage = (SdkMessageProcessingStep.Enums.Stage)messageResult.stage.Value;
-					Mode = (SdkMessageProcessingStep.Enums.Mode)messageResult.mode.Value;
-					Deployment = (SdkMessageProcessingStep.Enums.SupportedDeployment)messageResult.deployment.Value;
+					Stage = messageResult.stage.GetValueOrDefault();
+					Mode = messageResult.mode.GetValueOrDefault();
+					Deployment = messageResult.deployment.GetValueOrDefault();
 					IsDeleteJob = messageResult.deleteJob ?? false;
 					UnsecureConfig = messageResult.unsecureConfiguration;
 					IsDisabled = messageResult.isDisabled;

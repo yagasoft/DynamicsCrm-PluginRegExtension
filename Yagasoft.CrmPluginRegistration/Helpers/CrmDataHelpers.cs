@@ -4,7 +4,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk.Client;
 using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Metadata.Query;
@@ -82,17 +81,15 @@ namespace Yagasoft.CrmPluginRegistration.Helpers
 							   }
 						   };
 
-					using (var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking })
-				{
-					UserList.AddRange(
-						(from user in context.SystemUserSet
-						 where user.IsDisabled == false
-						 select new ComboUser
-								{
-									Id = user.Id,
-									Name = user.FirstName + " " + user.LastName
-								}).ToList().OrderBy(user => user.Name));
-				}
+				using var context = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
+				UserList.AddRange(
+					(from user in context.UserSet
+					 where user.Status == false
+					 select new ComboUser
+							{
+								Id = user.Id,
+								Name = user.FirstName + " " + user.LastName
+							}).ToList().OrderBy(user => user.Name));
 			}
 
 			return UserList;
@@ -166,12 +163,12 @@ namespace Yagasoft.CrmPluginRegistration.Helpers
 				MessageList =
 					(from message in context.SdkMessageSet
 					 join filter in context.SdkMessageFilterSet
-						 on message.SdkMessageId equals filter.SdkMessageId.Id
+						 on message.SdkMessageIdId equals filter.SDKMessageID
 					 // where filter.IsCustomProcessingStepAllowed == true
 					 select new ComboMessage
 							{
-								MessageId = message.SdkMessageId.GetValueOrDefault(),
-								FilteredId = filter.SdkMessageFilterId.GetValueOrDefault(),
+								MessageId = message.SdkMessageIdId.GetValueOrDefault(),
+								FilteredId = filter.SdkMessageFilterIdId.GetValueOrDefault(),
 								MessageName = message.Name,
 								EntityName = filter.PrimaryObjectTypeCode
 							}).ToList();

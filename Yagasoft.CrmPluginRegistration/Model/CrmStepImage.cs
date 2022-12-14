@@ -3,7 +3,6 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
-using CrmPluginEntities;
 using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
 using Yagasoft.CrmPluginRegistration.Connection;
@@ -39,15 +38,15 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 				if (IsPreImage && IsPostImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.Both;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.Both;
 				}
 				else if (IsPreImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.PreImage;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.PreImage;
 				}
 				else if (IsPostImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.PostImage;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.PostImage;
 				}
 
 				OnPropertyChanged("IsPreImage");
@@ -65,15 +64,15 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 				if (IsPreImage && IsPostImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.Both;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.Both;
 				}
 				else if (IsPreImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.PreImage;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.PreImage;
 				}
 				else if (IsPostImage)
 				{
-					ImageType = SdkMessageProcessingStepImage.Enums.ImageType.PostImage;
+					ImageType = SdkMessageProcessingStepImage.ImageTypeEnum.PostImage;
 				}
 
 				OnPropertyChanged("IsPostImage");
@@ -83,11 +82,11 @@ namespace Yagasoft.CrmPluginRegistration.Model
 		public bool IsPreImageEnabled => Step.Message == "Update" || Step.Message == "Delete";
 
 		public bool IsPostImageEnabled => (Step.Message == "Create"
-			&& Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation)
+			&& Step.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Postoperation)
 			|| (Step.Message == "Update"
-				&& Step.Stage == SdkMessageProcessingStep.Enums.Stage.Postoperation);
+				&& Step.Stage == SdkMessageProcessingStep.ExecutionStageEnum.Postoperation);
 
-		public SdkMessageProcessingStepImage.Enums.ImageType ImageType { get; set; }
+		public SdkMessageProcessingStepImage.ImageTypeEnum ImageType { get; set; }
 
 		private ObservableCollection<string> attributeList = new ObservableCollection<string>();
 
@@ -184,13 +183,13 @@ namespace Yagasoft.CrmPluginRegistration.Model
 			{
 				var result =
 					(from imageQ in context.SdkMessageProcessingStepImageSet
-					 where imageQ.SdkMessageProcessingStepImageId == Id
+					 where imageQ.SdkMessageProcessingStepImageIdId == Id
 					 select new
 							{
-								id = imageQ.SdkMessageProcessingStepImageId.Value,
+								id = imageQ.SdkMessageProcessingStepImageIdId,
 								name = imageQ.Name,
 								entityAlias = imageQ.EntityAlias,
-								attributes = imageQ.Attributes1,
+								attributes = imageQ.Attributes_Attributes1,
 								imageType = imageQ.ImageType.Value,
 							}).ToList();
 
@@ -204,10 +203,10 @@ namespace Yagasoft.CrmPluginRegistration.Model
 
 				Name = image.name;
 				EntityAlias = image.entityAlias;
-				IsPreImage = image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.PreImage
-					|| image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.Both;
-				IsPostImage = image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.PostImage
-					|| image.imageType == (int)SdkMessageProcessingStepImage.Enums.ImageType.Both;
+				IsPreImage = image.imageType == SdkMessageProcessingStepImage.ImageTypeEnum.PreImage
+					|| image.imageType == SdkMessageProcessingStepImage.ImageTypeEnum.Both;
+				IsPostImage = image.imageType == SdkMessageProcessingStepImage.ImageTypeEnum.PostImage
+					|| image.imageType == SdkMessageProcessingStepImage.ImageTypeEnum.Both;
 				AttributesSelectedString = image.attributes;
 			}
 		}
