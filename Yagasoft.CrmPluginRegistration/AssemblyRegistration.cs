@@ -8,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CrmPluginEntities;
 using CrmPluginRegExt.AssemblyInfoLoader;
@@ -345,7 +346,7 @@ namespace Yagasoft.CrmPluginRegistration
 		{
 			var existingAssemblies = CrmAssemblyHelpers.GetCrmAssembly(assemblyName, connectionManager, log);
 
-			var oldestAssembly = existingAssemblies.FirstOrDefault();
+			var oldestAssembly = existingAssemblies.OrderByDescending(a => a.Version).FirstOrDefault();
 			var oldestVersion = oldestAssembly?.Version.IsFilled() == true ? new Version(oldestAssembly.Version) : null;
 			UpdateStatus($"Existing version: v{oldestVersion} ... ");
 
@@ -392,7 +393,7 @@ Do you want to continue with the upgrade (press 'yes') or exit (press 'no')?";
 						.GetCrmSteps(connectionManager, log, oldestAssembly.Id);
 					UpdateStatus($"Found: {existingSteps.Count}.");
 
-					var existingAssemblyFullName = $"{oldestAssembly.Name}, Version={oldestAssembly.Version},"
+					var existingAssemblyFullName = $"{oldestAssembly.Name}, Version=.*?,"
 						+ $" Culture={oldestAssembly.Culture}, PublicKeyToken={oldestAssembly.PublicKeyToken}";
 
 					var existingWfs = RetrieveExistingWfs(existingAssemblyFullName);
@@ -521,20 +522,19 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				{
 					UpdateStatus($"Deactivating WFs ... ");
 
-					Parallel.ForEach(activeWfs, new ParallelOptions { MaxDegreeOfParallelism = activeWfs.Length },
-						wf =>
-						{
-							var service = connectionManager.Get();
+					foreach (var wf in activeWfs)
+					{
+						var service = connectionManager.Get();
 
-							UpdateStatus($"Deactivating WF: {wf.Name} ({wf.Id}) ... ");
-							service.Update(
-								new Workflow
-								{
-									Id = wf.Id,
-									StateCode = WorkflowState.Draft,
-									StatusCode = Workflow.Enums.StatusCode.Draft.ToOptionSetValue()
-								});
-						});
+						UpdateStatus($"Deactivating WF: {wf.Name} ({wf.Id}) ... ");
+						service.Update(
+							new Workflow
+							{
+								Id = wf.Id,
+								StateCode = WorkflowState.Draft,
+								StatusCode = Workflow.Enums.StatusCode.Draft.ToOptionSetValue()
+							});
+					}
 				}
 				else
 				{
@@ -553,7 +553,7 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 						new Workflow
 						{
 							Id = wf.Id,
-							Xaml = wf.Xaml.Replace(existingAssemblyFullName, newAssemblyFullName)
+							Xaml = Regex.Replace(wf.Xaml, existingAssemblyFullName, newAssemblyFullName)
 						});
 				});
 
@@ -934,6 +934,9 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 				case Dependency.Enums.RequiredComponentType.SDKMessageProcessingStep:
 					logicalname = SdkMessageProcessingStep.EntityLogicalName;
 					break;
+				case Dependency.Enums.RequiredComponentType.Workflow:
+					logicalname = SdkMessageProcessingStep.EntityLogicalName;
+					break;
 				case Dependency.Enums.RequiredComponentType.SDKMessageProcessingStepImage:
 					dependencies.Clear();
 					logicalname = SdkMessageProcessingStepImage.EntityLogicalName;
@@ -992,6 +995,8 @@ Do you want to deactivate (press 'yes') them before continuing, or exit (press '
 
 			using var xrmContext = new XrmServiceContext(connectionManager.Get()) { MergeOption = MergeOption.NoTracking };
 
+			existingAssemblyFullName = existingAssemblyFullName.Split(',').FirstOrDefault();
+			
 			var existingWfs =
 				(from wf in xrmContext.WorkflowSet
 				 where wf.Xaml.Contains(existingAssemblyFullName)

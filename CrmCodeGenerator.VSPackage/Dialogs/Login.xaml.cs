@@ -41,7 +41,7 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 	{
 		#region Properties
 
-		private const string WindowTitle = "Plugin Registration Extension v4.1.1";
+		private const string WindowTitle = "Plugin Registration Extension v4.1.2";
 
 		private readonly ConnectionManager connectionManager;
 		private DefaultPluginRegLogger registrationLog;
@@ -309,6 +309,24 @@ namespace CrmPluginRegExt.VSPackage.Dialogs
 
 		private void RegisterEvents()
 		{
+			settings.PropertyChanged +=
+				(o, args) =>
+				{
+					try
+					{
+						switch (args.PropertyName)
+						{
+							case nameof(settings.ConnectionString):
+								connectionManager.ConnectionString = settings.ConnectionString;
+								break;
+						}
+					}
+					catch
+					{
+						// ignored
+					}
+				};
+
 			assemblyRegistration.PropertyChanged +=
 				(o, args) =>
 				{
